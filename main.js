@@ -11,6 +11,8 @@ const state = {
   guppies: [],
   foodGivenToday: 0,
   foods: [],
+  bubbles: [],   // 미니게임: 큰 공기방울 (+1G)
+  treasures: [], // 미니게임: 바닥 황금 진주 (+3G)
   waterLevel: 0,
   mossLevel: 0,
   hasParasite: false,
@@ -113,13 +115,40 @@ function resizeTankCanvas() {
 
 window.addEventListener('resize', resizeTankCanvas);
 
-// 모바일 확실한 터치 인식을 위해 click 이벤트 + 넓은 판정 반경(32) 적용
+// 어항 터치 판정: 1순위 황금 진주 -> 2순위 큰 물방울 -> 3순위 구피 놀아주기
 canvas.addEventListener('click', e => {
   if (state.isCleaning || state.minutes >= DAY_END_MIN) return;
   const rect = canvas.getBoundingClientRect();
   const tapX = ((e.clientX - rect.left) / rect.width) * canvas.width;
   const tapY = ((e.clientY - rect.top) / rect.height) * canvas.height;
 
+  // 1. 황금 진주 터치 (+3G)
+  for (let i = state.treasures.length - 1; i >= 0; i--) {
+    const t = state.treasures[i];
+    if (Math.hypot(t.x - tapX, t.y - tapY) <= 24) {
+      state.treasures.splice(i, 1);
+      state.gold += 3;
+      setLog('반짝이는 황금 진주를 발견했습니다! (+3G)');
+      saveGame();
+      updateUI();
+      return;
+    }
+  }
+
+  // 2. 큰 공기방울 터뜨리기 (+1G)
+  for (let i = state.bubbles.length - 1; i >= 0; i--) {
+    const b = state.bubbles[i];
+    if (Math.hypot(b.x - tapX, b.y - tapY) <= 22) {
+      state.bubbles.splice(i, 1);
+      state.gold += 1;
+      setLog('큰 공기방울을 터뜨렸습니다! (+1G)');
+      saveGame();
+      updateUI();
+      return;
+    }
+  }
+
+  // 3. 구피 터치해서 놀아주기 (40% 확률로 +1G)
   for (let i = state.guppies.length - 1; i >= 0; i--) {
     const g = state.guppies[i];
     if (Math.hypot(g.x - tapX, g.y - tapY) <= 32) {
@@ -443,6 +472,24 @@ function gameLoop(now) {
     state.minutes += dt * state.speed;
     const currMin = Math.floor(state.minutes);
 
+    // 미니게임 오브젝트 스폰 (청소 중이 아닐 때)
+    if (!state.isCleaning) {
+      if (state.bubbles.length < 3 && Math.random() < 0.012 * state.speed) {
+        state.bubbles.push({
+          x: 20 + Math.random() * (canvas.width - 40),
+          y: canvas.height - 18,
+          wobble: Math.random() * 10
+        });
+      }
+      if (state.treasures.length < 1 && Math.random() < 0.004 * state.speed) {
+        state.treasures.push({
+          x: 24 + Math.random() * (canvas.width - 48),
+          y: canvas.height - 19,
+          life: 8 // 8초간 유지
+        });
+      }
+    }
+
     if (currMin > prevMin) {
       const diff = currMin - prevMin;
       if (state.isCleaning) {
@@ -462,11 +509,11 @@ function gameLoop(now) {
     }
   }
 
-  renderTank();
+  renderTank(dt);
   requestAnimationFrame(gameLoop);
 }
 
-function renderTank() {
+function renderTank(dt = 0.016) {
   if (state.waterLevel === 0) ctx.fillStyle = '#48cae4';
   else if (state.waterLevel === 1) ctx.fillStyle = '#64dfdf';
   else ctx.fillStyle = '#8d99ae';
@@ -490,6 +537,22 @@ function renderTank() {
     ctx.fillRect(canvas.width - 68, 8, 60, 42);
   }
 
+  // 바닥 황금 진주 렌더링 (반짝임 연출)
+  state.treasures = state.treasures.filter(t => {
+    if (state.speed > 0) t.life -= dt;
+    return t.life > 0;
+  });
+  state.treasures.forEach(t => {
+    const tx = Math.round(t.x);
+    const ty = Math.round(t.y);
+    const blink = Math.floor(performance.now() / 200) % 2 === 0;
+    ctx.fillStyle = blink ? '#ffd166' : '#ffffff';
+    ctx.fillRect(tx - 4, ty - 4, 8, 8);
+    ctx.fillStyle = '#f77f00';
+    ctx.fillRect(tx - 2, ty - 2, 4, 4);
+  });
+
+  // 구피 렌더링
   state.guppies.forEach(g => {
     g.update(
       canvas.width,
@@ -501,6 +564,24 @@ function renderTank() {
     g.draw(ctx);
   });
 
+  // 큰 공기방울 렌더링 (위로 떠오름)
+  state.bubbles = state.bubbles.filter(b => b.y > 10);
+  state.bubbles.forEach(b => {
+    if (state.speed > 0) {
+      b.y -= 0.35 * state.speed;
+      b.wobble += 0.1 * state.speed;
+      b.x += Math.sin(b.wobble) * 0.25;
+    }
+    const bx = Math.round(b.x);
+    const by = Math.round(b.y);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bx - 5, by - 5, 10, 10);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(bx - 3, by - 3, 2, 2);
+  });
+
+  // 사료 렌더링
   ctx.fillStyle = '#7f4f24';
   state.foods = state.foods.filter(f => !f.eaten && f.y < canvas.height - 14);
   state.foods.forEach(f => {
@@ -508,6 +589,7 @@ function renderTank() {
     ctx.fillRect(Math.round(f.x), Math.round(f.y), 3, 3);
   });
 
+  // 이끼 렌더링
   if (state.mossLevel > 0) {
     ctx.fillStyle = `rgba(45, 106, 79, ${state.mossLevel * 0.25})`;
     const b = state.mossLevel * 4;
@@ -548,6 +630,9 @@ function drawDecorSprite(ctx, id, x, y) {
   ctx.restore();
 }
 function triggerNightPhase() {
+  state.bubbles = [];
+  state.treasures = [];
+
   const totalCount = state.guppies.length;
   const perFish = state.mossLevel === 1 ? 2 : 3;
   const recommendedFood = totalCount * perFish;
