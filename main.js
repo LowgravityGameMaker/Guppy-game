@@ -2,6 +2,7 @@ const state = {
   day: 1,
   minutes: 7 * 60,
   speed: 1,
+  prevSpeedBeforeShop: 1,
   gold: 10,
   guppies: [],
   foodGivenToday: 0,
@@ -12,7 +13,11 @@ const state = {
   cleanedToday: false,
   isCleaning: false,
   cleanTimer: 0,
-  unlockedDex: new Set(['red_tail'])
+  hasBabyBox: false,
+  equippedDecors: [],
+  equippedSubstrate: null,
+  unlockedDex: new Set(['red_tail']),
+  dexCompletedRewarded: false
 };
 
 const canvas = document.getElementById('tank-canvas');
@@ -51,13 +56,15 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
 document.getElementById('btn-pause').addEventListener('click', () => {
   state.speed = state.speed === 0 ? 1 : 0;
-  document.getElementById('btn-pause').textContent = state.speed === 0 ? '재생' : '정지';
+  const pauseBtn = document.getElementById('btn-pause');
+  pauseBtn.textContent = state.speed === 0 ? '재생' : '정지';
 });
 
 document.getElementById('btn-speed').addEventListener('click', () => {
   if (state.speed === 0) state.speed = 1;
   else if (state.speed === 1) state.speed = 3;
   else state.speed = 1;
+
   document.getElementById('btn-pause').textContent = '정지';
   document.getElementById('btn-speed').textContent = `${state.speed}배속`;
 });
@@ -115,15 +122,146 @@ document.getElementById('btn-clean-all').addEventListener('click', () => {
     setLog('전체청소 완료: 어항이 깨끗해졌습니다.');
   });
 });
-
 document.getElementById('btn-dex').addEventListener('click', () => {
-  setLog(`도감 진행률: ${state.unlockedDex.size} / 14종`);
+  renderDexModal();
+  document.getElementById('dex-modal').classList.remove('hidden');
 });
+
+document.getElementById('btn-close-dex').addEventListener('click', () => {
+  document.getElementById('dex-modal').classList.add('hidden');
+});
+
+function renderDexModal() {
+  const prog = document.getElementById('dex-progress');
+  prog.textContent = `${state.unlockedDex.size}/14`;
+  const grid = document.getElementById('dex-grid');
+  grid.innerHTML = '';
+
+  GUPPY_SPECIES.forEach(sp => {
+    const unlocked = state.unlockedDex.has(sp.id);
+    const card = document.createElement('div');
+    const rareClass = sp.rarity === 'rare' ? 'rare' : '';
+    card.className = `dex-card ${rareClass}`;
+
+    const miniCanvas = document.createElement('canvas');
+    miniCanvas.width = 64;
+    miniCanvas.height = 36;
+    const mCtx = miniCanvas.getContext('2d');
+    drawGuppySprite(mCtx, sp, 34, 18, 1, 1.3, 0, false, !unlocked);
+
+    const tag = document.createElement('span');
+    tag.className = 'rarity-tag';
+    tag.textContent = sp.rarity === 'rare' ? '희귀' : '일반';
+
+    const name = document.createElement('div');
+    name.textContent = unlocked ? sp.name : '???';
+
+    card.appendChild(tag);
+    card.appendChild(miniCanvas);
+    card.appendChild(name);
+    grid.appendChild(card);
+  });
+}
 
 document.getElementById('btn-shop').addEventListener('click', () => {
-  setLog('상점은 다음 단계에서 추가됩니다.');
+  state.prevSpeedBeforeShop = state.speed;
+  state.speed = 0;
+  renderShopModal();
+  document.getElementById('shop-modal').classList.remove('hidden');
 });
 
+document.getElementById('btn-close-shop').addEventListener('click', () => {
+  document.getElementById('shop-modal').classList.add('hidden');
+  state.speed = state.prevSpeedBeforeShop || 1;
+  const pauseBtn = document.getElementById('btn-pause');
+  pauseBtn.textContent = state.speed === 0 ? '재생' : '정지';
+});
+
+function renderShopModal() {
+  document.getElementById('shop-gold').textContent = `${state.gold}G`;
+  const list = document.getElementById('shop-list');
+  list.innerHTML = '';
+
+  const categories = [
+    { key: 'supply', title: '필수품 (새끼장 외 일회용)' },
+    { key: 'decor', title: `장식품 (${state.equippedDecors.length}/2개)` },
+    { key: 'substrate', title: `바닥재 (${state.equippedSubstrate ? 1 : 0}/1개)` }
+  ];
+
+  categories.forEach(cat => {
+    const header = document.createElement('div');
+    header.className = 'shop-cat';
+    header.textContent = cat.title;
+    list.appendChild(header);
+
+    SHOP_ITEMS.filter(i => i.category === cat.key).forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'shop-item';
+
+      const isEqDecor = state.equippedDecors.includes(item.id);
+      const isEqSub = state.equippedSubstrate === item.id;
+      const isBabyBox = item.id === 'baby_box' && state.hasBabyBox;
+
+      let btnLabel = `${item.price}G 구매`;
+      let disabled = state.gold < item.price;
+
+      if (isBabyBox) {
+        btnLabel = '보유중';
+        disabled = true;
+      } else if (isEqDecor || isEqSub) {
+        btnLabel = '적용중';
+        disabled = true;
+      }
+
+      const descHtml = item.desc ? `<br><small>${item.desc}</small>` : '';
+      row.innerHTML = `<div><strong>${item.name}</strong>${descHtml}</div>`;
+
+      const btn = document.createElement('button');
+      btn.className = 'pixel-btn shop';
+      btn.textContent = btnLabel;
+      btn.disabled = disabled;
+      btn.onclick = () => buyItem(item);
+
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+  });
+}
+
+function buyItem(item) {
+  if (state.gold < item.price) return;
+
+  if (item.category === 'supply') {
+    if (item.id === 'baby_box') {
+      if (state.hasBabyBox) return;
+      state.gold -= item.price;
+      state.hasBabyBox = true;
+      setLog('새끼장을 구매했습니다! 새끼 구피가 보호됩니다.');
+    } else if (item.id === 'anti_parasite') {
+      state.gold -= item.price;
+      state.hasParasite = false;
+      setLog('기생충 제거제를 사용했습니다.');
+    } else if (item.id === 'anti_moss') {
+      state.gold -= item.price;
+      state.mossLevel = 0;
+      setLog('이끼 제거제를 사용했습니다.');
+    }
+  } else if (item.category === 'decor') {
+    state.gold -= item.price;
+    if (state.equippedDecors.length >= 2) {
+      state.equippedDecors.shift();
+    }
+    state.equippedDecors.push(item.id);
+    setLog(`${item.name}을(를) 어항에 배치했습니다.`);
+  } else if (item.category === 'substrate') {
+    state.gold -= item.price;
+    state.equippedSubstrate = item.id;
+    setLog(`${item.name}을(를) 바닥에 깔았습니다.`);
+  }
+
+  updateUI();
+  renderShopModal();
+}
 let lastTick = performance.now();
 function gameLoop(now) {
   const dt = (now - lastTick) / 1000;
@@ -158,20 +296,40 @@ function gameLoop(now) {
 }
 
 function renderTank() {
-  ctx.fillStyle = state.waterLevel === 0 ? '#48cae4' : state.waterLevel === 1 ? '#64dfdf' : '#8d99ae';
+  if (state.waterLevel === 0) ctx.fillStyle = '#48cae4';
+  else if (state.waterLevel === 1) ctx.fillStyle = '#64dfdf';
+  else ctx.fillStyle = '#8d99ae';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // 바닥재
-  ctx.fillStyle = '#e9c46a';
+  const subItem = SHOP_ITEMS.find(i => i.id === state.equippedSubstrate);
+  ctx.fillStyle = subItem ? subItem.color : '#e9c46a';
   ctx.fillRect(0, canvas.height - 14, canvas.width, 14);
 
-  // 구피 업데이트 및 그리기 (사료 목록 전달)
+  state.equippedDecors.forEach((decorId, idx) => {
+    const baseX = idx === 0 ? 36 : canvas.width - 64;
+    const baseY = canvas.height - 14;
+    drawDecorSprite(ctx, decorId, baseX, baseY);
+  });
+
+  if (state.hasBabyBox) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(canvas.width - 68, 8, 60, 42);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fillRect(canvas.width - 68, 8, 60, 42);
+  }
+
   state.guppies.forEach(g => {
-    g.update(canvas.width, canvas.height, state.speed, state.foods);
+    g.update(
+      canvas.width,
+      canvas.height,
+      state.speed,
+      state.foods,
+      state.hasBabyBox
+    );
     g.draw(ctx);
   });
 
-  // 먹힌 사료와 바닥에 닿은 사료 제거 후 남은 사료 그리기
   ctx.fillStyle = '#7f4f24';
   state.foods = state.foods.filter(f => !f.eaten && f.y < canvas.height - 14);
   state.foods.forEach(f => {
@@ -179,7 +337,6 @@ function renderTank() {
     ctx.fillRect(Math.round(f.x), Math.round(f.y), 3, 3);
   });
 
-  // 이끼
   if (state.mossLevel > 0) {
     ctx.fillStyle = `rgba(45, 106, 79, ${state.mossLevel * 0.25})`;
     const b = state.mossLevel * 4;
@@ -189,9 +346,40 @@ function renderTank() {
   }
 }
 
+function drawDecorSprite(ctx, id, x, y) {
+  ctx.save();
+  if (id.includes('plant')) {
+    ctx.fillStyle = id.includes('fake') ? '#40916c' : '#2d6a4f';
+    ctx.fillRect(x, y - 28, 4, 28);
+    ctx.fillRect(x - 4, y - 22, 4, 8);
+    ctx.fillRect(x + 4, y - 16, 4, 8);
+  } else if (id === 'fake_coral') {
+    ctx.fillStyle = '#ff6b6b';
+    ctx.fillRect(x, y - 20, 14, 20);
+    ctx.fillRect(x - 4, y - 16, 4, 10);
+    ctx.fillRect(x + 14, y - 18, 4, 12);
+  } else if (id === 'sunken_ship') {
+    ctx.fillStyle = '#7f4f24';
+    ctx.fillRect(x - 6, y - 16, 30, 16);
+    ctx.fillStyle = '#adb5bd';
+    ctx.fillRect(x + 6, y - 30, 3, 14);
+  } else if (id === 'shell') {
+    ctx.fillStyle = '#ffccd5';
+    ctx.fillRect(x, y - 10, 14, 10);
+  } else if (id === 'starfish') {
+    ctx.fillStyle = '#f77f00';
+    ctx.fillRect(x + 4, y - 12, 4, 12);
+    ctx.fillRect(x, y - 8, 12, 4);
+  } else {
+    ctx.fillStyle = '#6c757d';
+    ctx.fillRect(x, y - 14, 20, 14);
+  }
+  ctx.restore();
+}
 function triggerNightPhase() {
   const totalCount = state.guppies.length;
-  const recommendedFood = totalCount * (state.mossLevel === 1 ? 2 : 3);
+  const perFish = state.mossLevel === 1 ? 2 : 3;
+  const recommendedFood = totalCount * perFish;
   let score = 100;
   let deadCount = 0;
 
@@ -202,6 +390,16 @@ function triggerNightPhase() {
   } else if (state.foodGivenToday > recommendedFood + totalCount) {
     state.waterLevel = Math.min(2, state.waterLevel + 1);
     score -= 10;
+  }
+
+  state.equippedDecors.forEach(id => {
+    const item = SHOP_ITEMS.find(i => i.id === id);
+    if (item) score += item.score;
+  });
+
+  if (state.equippedSubstrate) {
+    const sub = SHOP_ITEMS.find(i => i.id === state.equippedSubstrate);
+    if (sub) score += sub.score;
   }
 
   if (state.mossLevel === 2) score -= 5;
@@ -217,7 +415,19 @@ function triggerNightPhase() {
     deadCount += Math.floor(Math.random() * 5) + 1;
   }
 
-  score = Math.max(0, score);
+  if (!state.hasBabyBox) {
+    state.guppies = state.guppies.filter(g => {
+      if (!g.isBaby) return true;
+      const eatChance = state.mossLevel === 3 ? 0.65 : 0.4;
+      if (Math.random() < eatChance) {
+        deadCount += 1;
+        return false;
+      }
+      return true;
+    });
+  }
+
+  score = Math.min(100, Math.max(0, score));
   deadCount = Math.min(state.guppies.length, deadCount);
 
   for (let i = 0; i < deadCount; i++) {
@@ -248,15 +458,55 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
   state.foodGivenToday = 0;
   state.cleanedToday = false;
 
+  state.guppies.forEach(g => {
+    g.ageDays += 1;
+    if (g.isBaby && g.ageDays >= 2) {
+      g.isBaby = false;
+    }
+  });
+
+  const adults = state.guppies.filter(g => !g.isBaby);
+  let birthMsg = '';
+  if (adults.length >= 2 && state.guppies.length <= 30) {
+    const birthProb = Math.max(0.15, 0.85 - state.guppies.length * 0.025);
+    if (Math.random() < birthProb) {
+      const newSpecies = pickOffspringSpecies();
+      const baby = new Guppy(newSpecies.id, true, canvas.width, canvas.height);
+      state.guppies.push(baby);
+
+      if (!state.unlockedDex.has(newSpecies.id)) {
+        state.unlockedDex.add(newSpecies.id);
+        const bonus = newSpecies.rarity === 'rare' ? 150 : 40;
+        state.gold += bonus;
+        birthMsg = ` 신종 [${newSpecies.name}] 탄생! (+${bonus}G)`;
+
+        if (state.unlockedDex.size === 14 && !state.dexCompletedRewarded) {
+          state.dexCompletedRewarded = true;
+          state.gold += 1000;
+          alert('축하합니다! 14종 구피 도감을 모두 완성했습니다! (+1000G)');
+        }
+      } else {
+        birthMsg = ` 새끼 [${newSpecies.name}]가 태어났습니다!`;
+      }
+    }
+  }
+
   if (Math.random() < 0.45) state.mossLevel = Math.min(3, state.mossLevel + 1);
   if (Math.random() < 0.35) state.waterLevel = Math.min(2, state.waterLevel + 1);
   if (!state.hasParasite && state.waterLevel === 2 && Math.random() < 0.3) {
     state.hasParasite = true;
   }
 
-  setLog(`${state.day}일차 아침이 밝았습니다.`);
+  setLog(`${state.day}일차 아침!${birthMsg}`);
   updateUI();
 });
+
+function pickOffspringSpecies() {
+  const isRare = Math.random() < 0.2;
+  const targetRarity = isRare ? 'rare' : 'normal';
+  const pool = GUPPY_SPECIES.filter(s => s.rarity === targetRarity);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function updateUI() {
   const h = Math.floor(state.minutes / 60);
@@ -271,6 +521,10 @@ function updateUI() {
   document.getElementById('stat-water').textContent = `수질:${WATER_LEVELS[state.waterLevel]}`;
   document.getElementById('stat-moss').textContent = `이끼:${MOSS_LEVELS[state.mossLevel]}`;
 
+  const dexBtn = document.getElementById('btn-dex');
+  dexBtn.innerHTML = `도감 <small>(${state.unlockedDex.size}/14)</small>`;
+
+  document.getElementById('stat-babybox').classList.toggle('hidden', !state.hasBabyBox);
   document.getElementById('stat-parasite').classList.toggle('hidden', !state.hasParasite);
   document.getElementById('stat-overcrowd').classList.toggle('hidden', state.guppies.length <= 30);
 
