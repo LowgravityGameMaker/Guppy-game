@@ -1,6 +1,6 @@
 class Guppy {
   constructor(speciesId, isBaby = false, canvasWidth = 240, canvasHeight = 260) {
-    this.species = GUPPY_SPECIES.find(s => s.id === speciesId) || GUPPY_SPECIES;
+    this.species = GUPPY_SPECIES.find(s => s.id === speciesId) || GUPPY_SPECIES[0];
     this.isBaby = isBaby;
     this.ageDays = isBaby ? 0 : 2;
     this.x = Math.random() * (canvasWidth - 60) + 30;
@@ -152,6 +152,9 @@ function drawGuppySprite(ctx, species, x, y, dir = 1, scale = 1, swimTimer = 0, 
       ctx.fillRect(-3 * p, -1 * p, 2 * p, 2 * p);
       ctx.fillStyle = '#8338ec';
       ctx.fillRect(-1 * p, -1 * p, 2 * p, 2 * p);
+    } else if (species.pattern === 'neon') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-3 * p, -1 * p, 4 * p, p);
     } else if (species.pattern === 'heart') {
       ctx.fillStyle = '#ff0a54';
       ctx.fillRect(-2 * p, -1 * p, 2 * p, 2 * p);
