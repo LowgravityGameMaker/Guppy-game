@@ -83,20 +83,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
     let deadCount = 0;
 
-    // 기생충 확정 사망 (1~5마리)
     if (state.bug) {
       const kill = Math.min(state.guppies.length, Math.floor(Math.random() * 5) + 1);
       state.guppies.splice(0, kill);
       deadCount += kill;
     }
 
-    // 수질 나쁨 사망 확률
     if (state.waterIdx === 0 && state.guppies.length > 0 && Math.random() < 0.4) {
       state.guppies.pop();
       deadCount++;
     }
 
-    // 밤사이 새끼 포식 및 이끼 많음 사망 판정
     for (let i = state.guppies.length - 1; i >= 0; i--) {
       const g = state.guppies.at(i);
       if (!g.isAdult) {
@@ -132,7 +129,6 @@ window.addEventListener('DOMContentLoaded', () => {
   function startNextMorning() {
     let morningNews = [];
 
-    // 1. 기존 새끼 구피 성체로 성장 및 도감 체크
     state.guppies.forEach(g => {
       if (!g.isAdult) {
         g.isAdult = true;
@@ -144,14 +140,12 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // 2. 도감 14종 완성 체크
     if (!state.dexCompleted && state.dex.length >= SPECIES_LIST.length) {
       state.dexCompleted = true;
       state.gold += 1000;
       morningNews.push('<b>[축하합니다!] 물고기 도감 14종을 모두 완성했습니다! 보너스 +1000G 지급!</b>');
     }
 
-    // 3. 아침 새끼 탄생 확률 (구피 수 적을수록 높음, 30마리 초과 시 중단)
     const pop = state.guppies.length;
     if (pop >= 2 && pop <= 30) {
       const birthChance = Math.max(0.15, 0.85 - (pop * 0.025));
@@ -169,7 +163,6 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 4. 환경 자연 변화
     if (Math.random() < 0.5 && state.waterIdx > 0) state.waterIdx--;
     if (Math.random() < 0.6 && state.mossIdx < 3) state.mossIdx++;
     if (!state.bug && state.waterIdx === 0 && Math.random() < 0.3) state.bug = true;
@@ -305,3 +298,66 @@ window.addEventListener('DOMContentLoaded', () => {
             const dx = target.x - g.x;
             const dy = target.y - g.y;
             const dist = Math.hypot(dx, dy);
+            if (dist < 6) {
+              state.foods.shift();
+            } else {
+              g.vx = (dx / dist) * 1.3 * moveSpd;
+              g.vy = (dy / dist) * 1.3 * moveSpd;
+            }
+} else if (Math.random() < 0.02) {
+g.vx = (Math.random() - 0.5) * 1.2 * moveSpd;
+g.vy = (Math.random() - 0.5) * 0.6 * moveSpd;
+}
+g.x += g.vx;
+g.y += g.vy;
+if (g.x < 16 || g.x > canvas.width - 16) g.vx *= -1;
+if (g.y < 16 || g.y > 185) g.vy *= -1;
+}
+}
+drawPixelGuppy(g);
+});
+requestAnimationFrame(gameLoop);
+  }
+  requestAnimationFrame(gameLoop);
+}
+document.getElementById('btn-start').onclick = () => {
+document.getElementById('title-screen').classList.add('hidden');
+document.getElementById('game-screen').classList.remove('hidden');
+initGame();
+};
+document.getElementById('btn-pause').onclick = (e) => {
+state.paused = !state.paused;
+e.target.textContent = state.paused ? '재생' : '정지';
+};
+document.getElementById('btn-fast').onclick = (e) => {
+state.speed = state.speed === 1 ? 2 : (state.speed === 2 ? 10 : 1);
+e.target.textContent = state.speed === 1 ? '2배속' : (state.speed === 2 ? '10배속' : '1배속');
+};
+document.getElementById('btn-clean-water').onclick = () => {
+if (state.cleanedToday) return;
+state.cleanedToday = true;
+if (state.waterIdx < 2) state.waterIdx++;
+advanceTime(30);
+};
+document.getElementById('btn-clean-wall').onclick = () => {
+if (state.cleanedToday) return;
+state.cleanedToday = true;
+state.mossIdx = 0;
+advanceTime(15);
+};
+document.getElementById('btn-clean-all').onclick = () => {
+if (state.cleanedToday) return;
+state.cleanedToday = true;
+state.waterIdx = 2;
+state.mossIdx = 0;
+state.bug = false;
+advanceTime(120);
+};
+document.getElementById('btn-feed').onclick = () => {
+if (state.gold < 1 || state.cleanedToday) return;
+state.gold -= 1;
+state.fedCount++;
+for (let i = 0; i < 4; i++) {
+state.foods.push({ x: 50 + Math.random() * 160, y: 10 });
+}
+  
