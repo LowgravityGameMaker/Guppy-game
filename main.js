@@ -325,6 +325,7 @@ function renderDexModal() {
     grid.appendChild(card);
   });
 }
+
 document.getElementById('btn-shop').addEventListener('click', () => {
   sound.playPop();
   state.prevSpeedBeforeShop = state.speed;
@@ -336,7 +337,7 @@ document.getElementById('btn-shop').addEventListener('click', () => {
 document.getElementById('btn-close-shop').addEventListener('click', () => {
   sound.playPop();
   document.getElementById('shop-modal').classList.add('hidden');
-  state.speed = state.prevSpeedBeforeShop || 1;
+  state.speed = state.prevSpeedBeforeShop ?? 1;
   const pauseBtn = document.getElementById('btn-pause');
   pauseBtn.textContent = state.speed === 0 ? '재생' : '정지';
 });
@@ -396,6 +397,9 @@ function renderShopModal() {
       const isEqSub = state.equippedSubstrate === item.id;
       const isBabyBox = item.id === 'baby_box' && state.hasBabyBox;
       const isTreatUsed = item.id === 'special_treat' && state.hasSpecialTreat;
+      const isUnneededMeds =
+        (item.id === 'anti_parasite' && !state.hasParasite) ||
+        (item.id === 'anti_moss' && state.mossLevel === 0);
 
       let btnLabel = `${item.price}G 구매`;
       let disabled = state.gold < item.price;
@@ -405,6 +409,9 @@ function renderShopModal() {
         disabled = true;
       } else if (isTreatUsed || isEqDecor || isEqSub) {
         btnLabel = '적용중';
+        disabled = true;
+      } else if (isUnneededMeds) {
+        btnLabel = '필요없음';
         disabled = true;
       }
 
@@ -422,7 +429,6 @@ function renderShopModal() {
     });
   });
 }
-
 function sellGuppy(speciesId, price, name) {
   if (state.guppies.length <= 1) return;
   const idx = state.guppies.findIndex(g => !g.isBaby && g.species.id === speciesId);
@@ -494,7 +500,7 @@ function buyItem(item) {
 
 let lastTick = performance.now();
 function gameLoop(now) {
-  const dt = (now - lastTick) / 1000;
+  const dt = Math.min((now - lastTick) / 1000, 0.1);
   lastTick = now;
 
   if (state.speed > 0 && state.minutes < DAY_END_MIN) {
@@ -534,6 +540,7 @@ function gameLoop(now) {
   renderTank();
   requestAnimationFrame(gameLoop);
 }
+
 function renderTank() {
   if (state.waterLevel === 0) ctx.fillStyle = '#48cae4';
   else if (state.waterLevel === 1) ctx.fillStyle = '#64dfdf';
@@ -632,20 +639,30 @@ function drawDecorSprite(ctx, id, x, y) {
   }
   ctx.restore();
 }
-
 function triggerNightPhase() {
   state.bubbles = [];
+
+  if (state.isCleaning) {
+    state.isCleaning = false;
+    state.cleanTimer = 0;
+    actionOverlay.classList.add('hidden');
+    if (state.onCleanFinish) {
+      state.onCleanFinish();
+      state.onCleanFinish = null;
+    }
+  }
 
   const totalCount = state.guppies.length;
   const perFish = state.mossLevel === 1 ? 2 : 3;
   const recommendedFood = totalCount * perFish;
   let score = 100;
-  let deadCount = 0;
+  let envDeadCount = 0;
+  let eatenCount = 0;
 
   if (state.foodGivenToday < recommendedFood) {
     const shortage = recommendedFood - state.foodGivenToday;
     score -= shortage * 10;
-    if (state.foodGivenToday === 0) deadCount += 1;
+    if (state.foodGivenToday === 0) envDeadCount += 1;
   } else if (state.foodGivenToday > recommendedFood + totalCount) {
     state.waterLevel = Math.min(2, state.waterLevel + 1);
     score -= 10;
@@ -666,12 +683,12 @@ function triggerNightPhase() {
   if (state.waterLevel === 1) score -= 5;
   if (state.waterLevel === 2) {
     score -= 15;
-    if (Math.random() < 0.5) deadCount += 1;
+    if (Math.random() < 0.5) envDeadCount += 1;
   }
   if (totalCount > 30) score -= 10;
   if (state.hasParasite) {
     score -= 15;
-    deadCount += Math.floor(Math.random() * 5) + 1;
+    envDeadCount += Math.floor(Math.random() * 5) + 1;
   }
 
   if (!state.hasBabyBox) {
@@ -679,7 +696,7 @@ function triggerNightPhase() {
       if (!g.isBaby) return true;
       const eatChance = state.mossLevel === 3 ? 0.65 : 0.4;
       if (Math.random() < eatChance) {
-        deadCount += 1;
+        eatenCount += 1;
         return false;
       }
       return true;
@@ -687,12 +704,13 @@ function triggerNightPhase() {
   }
 
   score = Math.min(100, Math.max(0, score));
-  deadCount = Math.min(state.guppies.length, deadCount);
+  envDeadCount = Math.min(state.guppies.length, envDeadCount);
 
-  for (let i = 0; i < deadCount; i++) {
+  for (let i = 0; i < envDeadCount; i++) {
     state.guppies.pop();
   }
 
+  const totalDead = eatenCount + envDeadCount;
   state.gold += score;
   saveGame();
 
@@ -700,7 +718,7 @@ function triggerNightPhase() {
   reportEl.innerHTML = `
     <p>- 오늘 급여: ${state.foodGivenToday}숟갈 (권장 ${recommendedFood}숟갈)</p>
     <p>- 종합 점수: <strong>${score}점</strong> (+${score}G)</p>
-    <p>- 생존: <strong>${state.guppies.length}마리</strong> / 사망: <strong>${deadCount}마리</strong></p>
+    <p>- 생존: <strong>${state.guppies.length}마리</strong> / 사망: <strong>${totalDead}마리</strong></p>
   `;
   document.getElementById('night-modal').classList.remove('hidden');
 }
