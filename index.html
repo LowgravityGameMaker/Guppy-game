@@ -1,66 +1,84 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>도트 구피 키우기</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>구피 도감 힐링 게임</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="title-screen" class="screen">
-    <div class="pixel-box title-card">
-      <h1>DOT GUPPY</h1>
-      <p>구피 육성 및 도감 수집</p>
-      <button id="btn-start" class="pixel-btn primary">게임 스타트</button>
+  <!-- 시작 타이틀 화면 -->
+  <div id="start-screen" class="screen">
+    <div class="pixel-box title-box">
+      <h1>🐠 도트 구피 키우기</h1>
+      <p>구피를 돌보고 14종의 도감을 완성하세요!</p>
+      <button id="btn-start" class="pixel-btn primary">GAME START</button>
     </div>
   </div>
 
+  <!-- 메인 게임 화면 -->
   <div id="game-screen" class="screen hidden">
-    <header class="top-bar">
+    <!-- 상단 바: 어항 상태 + 시간/배속 -->
+    <header class="top-bar pixel-box">
       <div class="status-group">
-        <div class="status-row">
-          <span id="stat-water" class="badge">수질:좋음</span>
-          <span id="stat-moss" class="badge">이끼:없음</span>
-          <span id="stat-over" class="badge hidden">과포화</span>
-          <span id="stat-bug" class="badge hidden">기생충</span>
-        </div>
-        <div class="status-row">
-          <span id="stat-pop" class="badge">성체:2 새끼:0</span>
-          <span id="stat-gold" class="badge gold">골드:10G</span>
-        </div>
+        <span id="stat-water" class="badge">💧수질:좋음</span>
+        <span id="stat-moss" class="badge">🌿이끼:없음</span>
+        <span id="stat-parasite" class="badge hidden">🦠기생충!</span>
+        <span id="stat-overcrowd" class="badge hidden">⚠️과포화</span>
+        <span id="stat-count" class="badge">🐟성체:2 / 🐣새끼:0</span>
+        <span id="stat-gold" class="badge gold">💰10G</span>
       </div>
       <div class="time-group">
-        <div id="clock-display" class="clock">07:00</div>
-        <div class="time-btns">
-          <button id="btn-pause" class="pixel-btn mini">정지</button>
-          <button id="btn-fast" class="pixel-btn mini">2배속</button>
-        </div>
+        <span id="game-day">Day 1</span>
+        <span id="game-clock">07:00</span>
+        <button id="btn-pause" class="mini-btn">⏸️</button>
+        <button id="btn-speed" class="mini-btn">1x</button>
       </div>
     </header>
 
+    <!-- 중앙: 어항 + 우측 도감 버튼 -->
     <main class="tank-area">
-      <canvas id="tank-canvas" width="260" height="220"></canvas>
-      <button id="btn-dex" class="pixel-btn side-btn">물고기<br>도감</button>
+      <div class="tank-wrapper pixel-box">
+        <canvas id="tank-canvas" width="320" height="220"></canvas>
+        <div id="action-overlay" class="overlay hidden">청소 중...</div>
+      </div>
+      <button id="btn-dex" class="pixel-btn side-btn">📖<br>도감</button>
     </main>
 
-    <footer class="bottom-controls">
-      <button id="btn-clean-water" class="pixel-btn">물 갈기</button>
-      <button id="btn-clean-wall" class="pixel-btn">벽 닦기</button>
-      <button id="btn-clean-all" class="pixel-btn">전체 청소</button>
-      <button id="btn-feed" class="pixel-btn accent">밥 주기(1G)</button>
-      <button id="btn-shop" class="pixel-btn">상점</button>
+    <!-- 알림 메시지 로그 -->
+    <div id="log-bar" class="pixel-box">붉은꼬리 구피 2마리와 시작합니다! (권장 급여: 마리당 3숟갈)</div>
+
+    <!-- 하단 조작 버튼 -->
+    <footer class="bottom-bar">
+      <button id="btn-water" class="pixel-btn action-btn">💧물 갈기<br><small>(30분)</small></button>
+      <button id="btn-wall" class="pixel-btn action-btn">🧽벽 닦기<br><small>(15분)</small></button>
+      <button id="btn-clean-all" class="pixel-btn action-btn">✨전체 청소<br><small>(2시간)</small></button>
+      <button id="btn-feed" class="pixel-btn action-btn feed">🍚밥 주기<br><small>(-1G)</small></button>
+      <button id="btn-shop" class="pixel-btn action-btn shop">🏪상점</button>
     </footer>
   </div>
 
-  <div id="modal-overlay" class="modal-overlay hidden">
-    <div id="modal-box" class="pixel-box modal-content">
-      <h2 id="modal-title">알림</h2>
-      <div id="modal-body"></div>
-      <button id="btn-modal-close" class="pixel-btn">확인</button>
+  <!-- 밤 정산 모달 -->
+  <div id="night-modal" class="modal hidden">
+    <div class="pixel-box modal-content">
+      <h2>🌙 밤이 되었습니다</h2>
+      <p class="sub-text">어두워서 어항 속이 보이지 않습니다...</p>
+      <div id="night-report" class="report-box"></div>
+      <button id="btn-next-day" class="pixel-btn primary">다음 날 아침으로 (07:00)</button>
     </div>
   </div>
 
-  <script src="data.js?v=4"></script>
-  <script src="game.js?v=4"></script>
+  <!-- 게임 오버 모달 -->
+  <div id="gameover-modal" class="modal hidden">
+    <div class="pixel-box modal-content">
+      <h2>💀 GAME OVER</h2>
+      <p>모든 구피가 세상을 떠났습니다...</p>
+      <button onclick="location.reload()" class="pixel-btn primary">다시 시작하기</button>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="guppy.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
