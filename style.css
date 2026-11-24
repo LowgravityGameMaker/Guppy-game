@@ -88,7 +88,7 @@ html, body {
   background: #3b5275;
   color: #fff;
   border: 2px solid #cbd5e1;
-  padding: 2px 8px;
+  padding: 3px 8px;
   font-family: inherit;
   font-size: 11px;
   font-weight: bold;
@@ -120,10 +120,11 @@ html, body {
   font-weight: bold;
 }
 
-/* 중앙 어항 영역 */
+/* 중앙 어항: 위아래 너무 길지 않게 최대 높이 제한 */
 .tank-area {
   flex: 1;
   min-height: 0;
+  max-height: 54dvh;
   display: flex;
 }
 
@@ -146,7 +147,7 @@ html, body {
 .overlay {
   position: absolute;
   inset: 3px;
-  background: rgba(10, 15, 24, 0.8);
+  background: rgba(10, 15, 24, 0.82);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -160,7 +161,7 @@ html, body {
   flex-shrink: 0;
   font-size: 12px;
   color: #a8dadc;
-  height: 32px;
+  height: 34px;
   display: flex;
   align-items: center;
   padding: 0 8px;
@@ -169,13 +170,13 @@ html, body {
   text-overflow: ellipsis;
 }
 
-/* 하단 버튼 (6칸 균등 배치) */
+/* 하단 버튼 (3칸 x 2줄 배치로 글씨 안 눌림) */
 .bottom-bar {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-  height: 50px;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 44px);
+  gap: 6px;
 }
 
 .pixel-btn {
@@ -184,20 +185,19 @@ html, body {
   border: 2px solid #cbd5e1;
   box-shadow: 2px 2px 0px #0a0f18;
   font-family: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: bold;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  line-height: 1.25;
-  padding: 2px;
+  gap: 3px;
+  white-space: nowrap;
 }
 
 .pixel-btn small {
-  font-size: 9px;
-  opacity: 0.85;
+  font-size: 10px;
+  opacity: 0.9;
 }
 
 .pixel-btn:active:not(:disabled) {
@@ -232,43 +232,121 @@ html, body {
   color: #0a0f18;
 }
 
-/* 모달 */
+/* 모달 공통 */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.84);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 16px;
+  padding: 12px;
   z-index: 100;
 }
 
 .modal-content {
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
   text-align: center;
-  padding: 14px;
+  padding: 12px;
+  max-height: 86dvh;
+  display: flex;
+  flex-direction: column;
 }
 
-.modal-content h2 {
-  font-size: 18px;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.modal-header h2, .modal-content h2 {
+  font-size: 16px;
   color: #ffd166;
-  margin-bottom: 6px;
 }
 
 .sub-text {
-  font-size: 12px;
+  font-size: 11px;
   color: #94a3b8;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  text-align: left;
 }
 
 .report-box {
   background: #141e30;
   border: 1px solid #64748b;
   padding: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   text-align: left;
   font-size: 12px;
   line-height: 1.7;
+}
+
+/* 도감 그리드 */
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.dex-card {
+  background: #141e30;
+  border: 1px solid #64748b;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.dex-card.rare {
+  border-color: #ffd166;
+}
+
+.dex-card .rarity-tag {
+  font-size: 9px;
+  padding: 1px 4px;
+  background: #334155;
+}
+
+.dex-card.rare .rarity-tag {
+  background: #ffd166;
+  color: #0a0f18;
+  font-weight: bold;
+}
+
+/* 상점 리스트 */
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.shop-cat {
+  font-size: 11px;
+  color: #ffd166;
+  margin-top: 6px;
+  border-bottom: 1px solid #475569;
+  padding-bottom: 2px;
+}
+
+.shop-item {
+  background: #141e30;
+  border: 1px solid #64748b;
+  padding: 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.shop-item button {
+  padding: 4px 10px;
+  font-size: 11px;
 }
