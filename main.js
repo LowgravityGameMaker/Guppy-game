@@ -1,6 +1,6 @@
 const SAVE_KEY = 'guppy_tank_save_v1';
-const DAY_START_MIN = 9 * 60; // 9시 00분 (540분)
-const DAY_END_MIN = 17 * 60;  // 17시 00분 (1020분)
+const DAY_START_MIN = 9 * 60;
+const DAY_END_MIN = 17 * 60;
 
 const state = {
   day: 1,
@@ -113,8 +113,8 @@ function resizeTankCanvas() {
 
 window.addEventListener('resize', resizeTankCanvas);
 
-// 어항 속 구피 터치해서 놀아주기 (35% 확률로 +1G)
-canvas.addEventListener('pointerdown', e => {
+// 모바일 확실한 터치 인식을 위해 click 이벤트 + 넓은 판정 반경(32) 적용
+canvas.addEventListener('click', e => {
   if (state.isCleaning || state.minutes >= DAY_END_MIN) return;
   const rect = canvas.getBoundingClientRect();
   const tapX = ((e.clientX - rect.left) / rect.width) * canvas.width;
@@ -122,13 +122,16 @@ canvas.addEventListener('pointerdown', e => {
 
   for (let i = state.guppies.length - 1; i >= 0; i--) {
     const g = state.guppies[i];
-    if (Math.hypot(g.x - tapX, g.y - tapY) <= 22) {
-      g.playWith();
+    if (Math.hypot(g.x - tapX, g.y - tapY) <= 32) {
+      if (typeof g.playWith === 'function') {
+        g.playWith();
+      }
       const now = Date.now();
-      if (now - state.lastPlayTime >= 1000 && Math.random() < 0.35) {
+      if (now - state.lastPlayTime >= 800 && Math.random() < 0.4) {
         state.lastPlayTime = now;
         state.gold += 1;
-        setLog(`${g.species.name}와 놀아주어 +1G를 얻었습니다!`);
+        setLog(`${g.species.name}와 놀아주어 +1G 획득!`);
+        saveGame();
         updateUI();
       } else {
         setLog(`${g.species.name}가 반가워합니다!`);
@@ -205,7 +208,7 @@ document.getElementById('btn-feed').addEventListener('click', () => {
 function startCleaning(durationMin, cost, label, callback) {
   if (state.cleanedToday || state.isCleaning) return;
   if (state.gold < cost) {
-    setLog(`골드가 부족합니다. (${label}: ${cost}G 필요)`);
+    setLog(`골드가 부족합니다! (${label}: ${cost}G 필요)`);
     return;
   }
   state.gold -= cost;
@@ -214,8 +217,9 @@ function startCleaning(durationMin, cost, label, callback) {
   state.cleanTimer = durationMin;
   actionOverlay.textContent = `${label} 중 (${durationMin}분)`;
   actionOverlay.classList.remove('hidden');
-  setLog(`${label} 시작 (-${cost}G)`);
+  setLog(`${label} 시작 (-${cost}G 차감)`);
   state.onCleanFinish = callback;
+  saveGame();
   updateUI();
 }
 
