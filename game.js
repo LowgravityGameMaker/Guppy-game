@@ -2,10 +2,12 @@ window.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('tank-canvas');
   const ctx = canvas.getContext('2d');
 
-  const FALLBACK_SPECIES = [
+  const SPECIES_LIST = (typeof GUPPY_SPECIES !== 'undefined') ? GUPPY_SPECIES : [
     { id: 'red_tail', name: '붉은꼬리 구피', rarity: '일반', body: '#d5dbdb', tail: '#e74c3c', spot: null, bonus: 10 }
   ];
-  const SPECIES_LIST = (typeof GUPPY_SPECIES !== 'undefined') ? GUPPY_SPECIES : FALLBACK_SPECIES;
+
+  const WATER_LEVELS = ['나쁨', '보통', '좋음'];
+  const MOSS_LEVELS = ['없음', '약간', '중간', '많음'];
 
   const state = {
     gold: 10,
@@ -13,14 +15,16 @@ window.addEventListener('DOMContentLoaded', () => {
     minutes: 420,
     paused: false,
     speed: 1,
-    water: '좋음',
-    moss: '없음',
+    waterIdx: 2, // 0:나쁨, 1:보통, 2:좋음
+    mossIdx: 0,  // 0:없음, 1:약간, 2:중간, 3:많음
     bug: false,
     cleanedToday: false,
     fedCount: 0,
     guppies: [],
     foods: [],
-    dex: ['red_tail']
+    dex: ['red_tail'],
+    equippedDecos: [],
+    substrate: null
   };
 
   function initGame() {
@@ -46,28 +50,84 @@ window.addEventListener('DOMContentLoaded', () => {
 
   setInterval(() => {
     if (state.paused || document.getElementById('game-screen').classList.contains('hidden')) return;
-    state.minutes += state.speed;
+    advanceTime(state.speed);
+  }, 1000);
+
+  function advanceTime(mins) {
+    state.minutes += mins;
     if (state.minutes >= 1200) {
       state.minutes = 1200;
-      state.paused = true;
-      openModal('밤이 되었습니다 (20:00)', '어항이 어두워졌습니다. [확인]을 누르면 다음 날 07:00로 넘어갑니다.', () => {
-        state.day++;
-        state.minutes = 420;
-        state.cleanedToday = false;
-        state.fedCount = 0;
-        state.paused = false;
-        updateUI();
-      });
+      triggerNightReport();
     }
     updateUI();
-  }, 1000);
+  }
+
+  function triggerNightReport() {
+    state.paused = true;
+    const pop = state.guppies.length;
+    const reqFeed = pop * (state.mossIdx === 1 ? 2 : 3);
+    const feedDiff = Math.abs(state.fedCount - reqFeed);
+
+    let score = 100;
+    if (feedDiff > 0) score -= Math.min(25, feedDiff * 4);
+    if (state.waterIdx === 1) score -= 5;
+    if (state.waterIdx === 0) score -= 15;
+    if (state.mossIdx === 2) score -= 5;
+    if (state.mossIdx === 3) score -= 10;
+    if (pop > 30) score -= 10;
+    if (state.bug) score -= 15;
+
+    state.equippedDecos.forEach(d => { score += (d.score || 0); });
+    score = Math.max(0, Math.min(100, score));
+
+    // 사망 판정
+    let deadCount = 0;
+    if (state.bug) {
+      const kill = Math.min(state.guppies.length, Math.floor(Math.random() * 5) + 1);
+      state.guppies.splice(0, kill);
+      deadCount += kill;
+    }
+    if (state.waterIdx === 0 && state.guppies.length > 0 && Math.random() < 0.4) {
+      state.guppies.pop();
+      deadCount++;
+    }
+
+    const earnedGold = score;
+    state.gold += earnedGold;
+
+    const reportHtml = `
+      [어항이 어두워졌습니다 - ${state.day}일차 밤 정산]<br><br>
+      - 오늘 급여량: ${state.fedCount}숟갈 (권장: ${reqFeed}숟갈)<br>
+      - 수질: ${WATER_LEVELS.at(state.waterIdx)} / 이끼: ${MOSS_LEVELS.at(state.mossIdx)}<br>
+      - 종합 점수: <b>${score}점</b> (+${earnedGold}G 획득)<br>
+      - 생존 구피: ${state.guppies.length}마리 / 사망 구피: ${deadCount}마리
+    `;
+
+    openModal('밤 정산 보고서', reportHtml, () => {
+      if (state.guppies.length === 0) {
+        openModal('게임 오버', '모든 구피가 사망했습니다. 새로고침하여 다시 시작하세요.');
+        return;
+      }
+      // 다음 날 환경 변화
+      if (Math.random() < 0.5 && state.waterIdx > 0) state.waterIdx--;
+      if (Math.random() < 0.6 && state.mossIdx < 3) state.mossIdx++;
+      if (!state.bug && state.waterIdx === 0 && Math.random() < 0.3) state.bug = true;
+
+      state.day++;
+      state.minutes = 420;
+      state.cleanedToday = false;
+      state.fedCount = 0;
+      state.paused = false;
+      updateUI();
+    });
+  }
 
   function updateUI() {
     const h = String(Math.floor(state.minutes / 60)).padStart(2, '0');
     const m = String(state.minutes % 60).padStart(2, '0');
     document.getElementById('clock-display').textContent = `${h}:${m}`;
-    document.getElementById('stat-water').textContent = `수질:${state.water}`;
-    document.getElementById('stat-moss').textContent = `이끼:${state.moss}`;
+    document.getElementById('stat-water').textContent = `수질:${WATER_LEVELS.at(state.waterIdx)}`;
+    document.getElementById('stat-moss').textContent = `이끼:${MOSS_LEVELS.at(state.mossIdx)}`;
     document.getElementById('stat-gold').textContent = `골드:${state.gold}G`;
 
     const adults = state.guppies.filter(g => g.isAdult).length;
@@ -110,7 +170,22 @@ window.addEventListener('DOMContentLoaded', () => {
   function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#f5cba7';
+    // 밤(20:00)에는 어항 어둡게 가림
+    if (state.minutes >= 1200) {
+      ctx.fillStyle = '#1b2631';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      requestAnimationFrame(gameLoop);
+      return;
+    }
+
+    // 이끼 농도에 따른 물 색깔 변화
+    const mossAlpha = [0, 0.1, 0.25, 0.45].at(state.mossIdx);
+    if (mossAlpha > 0) {
+      ctx.fillStyle = `rgba(39, 174, 96, ${mossAlpha})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.fillStyle = state.substrate ? state.substrate.color : '#f5cba7';
     ctx.fillRect(0, 195, canvas.width, 25);
 
     ctx.fillStyle = '#27ae60';
@@ -171,8 +246,31 @@ window.addEventListener('DOMContentLoaded', () => {
     e.target.textContent = state.speed === 1 ? '2배속' : '1배속';
   };
 
+  document.getElementById('btn-clean-water').onclick = () => {
+    if (state.cleanedToday) return;
+    state.cleanedToday = true;
+    if (state.waterIdx < 2) state.waterIdx++;
+    advanceTime(30);
+  };
+
+  document.getElementById('btn-clean-wall').onclick = () => {
+    if (state.cleanedToday) return;
+    state.cleanedToday = true;
+    state.mossIdx = 0;
+    advanceTime(15);
+  };
+
+  document.getElementById('btn-clean-all').onclick = () => {
+    if (state.cleanedToday) return;
+    state.cleanedToday = true;
+    state.waterIdx = 2;
+    state.mossIdx = 0;
+    state.bug = false;
+    advanceTime(120);
+  };
+
   document.getElementById('btn-feed').onclick = () => {
-    if (state.gold < 1) return;
+    if (state.gold < 1 || state.cleanedToday) return;
     state.gold -= 1;
     state.fedCount++;
     for (let i = 0; i < 4; i++) {
