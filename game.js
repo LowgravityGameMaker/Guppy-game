@@ -2,6 +2,11 @@ window.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('tank-canvas');
   const ctx = canvas.getContext('2d');
 
+  const FALLBACK_SPECIES = [
+    { id: 'red_tail', name: '붉은꼬리 구피', rarity: '일반', body: '#d5dbdb', tail: '#e74c3c', spot: null, bonus: 10 }
+  ];
+  const SPECIES_LIST = (typeof GUPPY_SPECIES !== 'undefined') ? GUPPY_SPECIES : FALLBACK_SPECIES;
+
   const state = {
     gold: 10,
     day: 1,
@@ -28,7 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function createGuppy(speciesId, x, y) {
-    const sp = GUPPY_SPECIES.find(s => s.id === speciesId);
+    const sp = SPECIES_LIST.find(s => s.id === speciesId) || SPECIES_LIST[0];
     return {
       species: sp,
       isAdult: true,
@@ -124,7 +129,7 @@ window.addEventListener('DOMContentLoaded', () => {
     state.guppies.forEach(g => {
       if (!state.paused) {
         if (state.foods.length > 0) {
-          const target = state.foods;
+          const target = state.foods[0];
           const dx = target.x - g.x;
           const dy = target.y - g.y;
           const dist = Math.hypot(dx, dy);
@@ -150,11 +155,14 @@ window.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(gameLoop);
   }
 
-  document.getElementById('btn-start').onclick = () => {
-    document.getElementById('title-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-    initGame();
-  };
+  const startBtn = document.getElementById('btn-start');
+  if (startBtn) {
+    startBtn.onclick = () => {
+      document.getElementById('title-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+      initGame();
+    };
+  }
 
   document.getElementById('btn-pause').onclick = (e) => {
     state.paused = !state.paused;
@@ -177,7 +185,7 @@ window.addEventListener('DOMContentLoaded', () => {
   };
 
   document.getElementById('btn-dex').onclick = () => {
-    const list = GUPPY_SPECIES.map(s => {
+    const list = SPECIES_LIST.map(s => {
       const found = state.dex.includes(s.id);
       return found ? `[발견] ${s.name} (${s.rarity})` : `[미발견] ???`;
     }).join('<br>');
