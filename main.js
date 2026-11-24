@@ -11,8 +11,8 @@ const state = {
   guppies: [],
   foodGivenToday: 0,
   foods: [],
-  bubbles: [],   // 미니게임: 큰 공기방울 (+1G)
-  treasures: [], // 미니게임: 바닥 황금 진주 (+3G)
+  bubbles: [],
+  hasSpecialTreat: false,
   waterLevel: 0,
   mossLevel: 0,
   hasParasite: false,
@@ -48,6 +48,7 @@ function saveGame() {
     hasParasite: state.hasParasite,
     cleanedToday: state.cleanedToday,
     foodGivenToday: state.foodGivenToday,
+    hasSpecialTreat: state.hasSpecialTreat,
     hasBabyBox: state.hasBabyBox,
     equippedDecors: state.equippedDecors,
     equippedSubstrate: state.equippedSubstrate,
@@ -75,6 +76,7 @@ function loadGame() {
     state.hasParasite = !!data.hasParasite;
     state.cleanedToday = !!data.cleanedToday;
     state.foodGivenToday = data.foodGivenToday || 0;
+    state.hasSpecialTreat = !!data.hasSpecialTreat;
     state.hasBabyBox = !!data.hasBabyBox;
     state.equippedDecors = data.equippedDecors || [];
     state.equippedSubstrate = data.equippedSubstrate || null;
@@ -115,27 +117,13 @@ function resizeTankCanvas() {
 
 window.addEventListener('resize', resizeTankCanvas);
 
-// 어항 터치 판정: 1순위 황금 진주 -> 2순위 큰 물방울 -> 3순위 구피 놀아주기
+// 어항 터치 판정: 1순위 큰 공기방울(+1G) -> 2순위 구피 놀아주기(+1G 확률)
 canvas.addEventListener('click', e => {
   if (state.isCleaning || state.minutes >= DAY_END_MIN) return;
   const rect = canvas.getBoundingClientRect();
   const tapX = ((e.clientX - rect.left) / rect.width) * canvas.width;
   const tapY = ((e.clientY - rect.top) / rect.height) * canvas.height;
 
-  // 1. 황금 진주 터치 (+3G)
-  for (let i = state.treasures.length - 1; i >= 0; i--) {
-    const t = state.treasures[i];
-    if (Math.hypot(t.x - tapX, t.y - tapY) <= 24) {
-      state.treasures.splice(i, 1);
-      state.gold += 3;
-      setLog('반짝이는 황금 진주를 발견했습니다! (+3G)');
-      saveGame();
-      updateUI();
-      return;
-    }
-  }
-
-  // 2. 큰 공기방울 터뜨리기 (+1G)
   for (let i = state.bubbles.length - 1; i >= 0; i--) {
     const b = state.bubbles[i];
     if (Math.hypot(b.x - tapX, b.y - tapY) <= 22) {
@@ -148,7 +136,6 @@ canvas.addEventListener('click', e => {
     }
   }
 
-  // 3. 구피 터치해서 놀아주기 (40% 확률로 +1G)
   for (let i = state.guppies.length - 1; i >= 0; i--) {
     const g = state.guppies[i];
     if (Math.hypot(g.x - tapX, g.y - tapY) <= 32) {
@@ -227,7 +214,8 @@ document.getElementById('btn-feed').addEventListener('click', () => {
     state.foods.push({
       x: 20 + Math.random() * (canvas.width - 40),
       y: 10 + Math.random() * 15,
-      eaten: false
+      eaten: false,
+      isTreat: false
     });
   }
   setLog(`사료 급여 완료 (오늘 ${state.foodGivenToday}숟갈)`);
@@ -387,6 +375,7 @@ function renderShopModal() {
       const isEqDecor = state.equippedDecors.includes(item.id);
       const isEqSub = state.equippedSubstrate === item.id;
       const isBabyBox = item.id === 'baby_box' && state.hasBabyBox;
+      const isTreatUsed = item.id === 'special_treat' && state.hasSpecialTreat;
 
       let btnLabel = `${item.price}G 구매`;
       let disabled = state.gold < item.price;
@@ -394,7 +383,7 @@ function renderShopModal() {
       if (isBabyBox) {
         btnLabel = '보유중';
         disabled = true;
-      } else if (isEqDecor || isEqSub) {
+      } else if (isTreatUsed || isEqDecor || isEqSub) {
         btnLabel = '적용중';
         disabled = true;
       }
@@ -431,7 +420,20 @@ function buyItem(item) {
   if (state.gold < item.price) return;
 
   if (item.category === 'supply') {
-    if (item.id === 'baby_box') {
+    if (item.id === 'special_treat') {
+      if (state.hasSpecialTreat) return;
+      state.gold -= item.price;
+      state.hasSpecialTreat = true;
+      for (let i = 0; i < 12; i++) {
+        state.foods.push({
+          x: 20 + Math.random() * (canvas.width - 40),
+          y: 10 + Math.random() * 20,
+          eaten: false,
+          isTreat: true
+        });
+      }
+      setLog('특별 간식을 급여했습니다! 내일 희귀종 확률이 크게 오릅니다!');
+    } else if (item.id === 'baby_box') {
       if (state.hasBabyBox) return;
       state.gold -= item.price;
       state.hasBabyBox = true;
@@ -472,20 +474,12 @@ function gameLoop(now) {
     state.minutes += dt * state.speed;
     const currMin = Math.floor(state.minutes);
 
-    // 미니게임 오브젝트 스폰 (청소 중이 아닐 때)
     if (!state.isCleaning) {
       if (state.bubbles.length < 3 && Math.random() < 0.012 * state.speed) {
         state.bubbles.push({
           x: 20 + Math.random() * (canvas.width - 40),
           y: canvas.height - 18,
           wobble: Math.random() * 10
-        });
-      }
-      if (state.treasures.length < 1 && Math.random() < 0.004 * state.speed) {
-        state.treasures.push({
-          x: 24 + Math.random() * (canvas.width - 48),
-          y: canvas.height - 19,
-          life: 8 // 8초간 유지
         });
       }
     }
@@ -509,11 +503,11 @@ function gameLoop(now) {
     }
   }
 
-  renderTank(dt);
+  renderTank();
   requestAnimationFrame(gameLoop);
 }
 
-function renderTank(dt = 0.016) {
+function renderTank() {
   if (state.waterLevel === 0) ctx.fillStyle = '#48cae4';
   else if (state.waterLevel === 1) ctx.fillStyle = '#64dfdf';
   else ctx.fillStyle = '#8d99ae';
@@ -537,22 +531,6 @@ function renderTank(dt = 0.016) {
     ctx.fillRect(canvas.width - 68, 8, 60, 42);
   }
 
-  // 바닥 황금 진주 렌더링 (반짝임 연출)
-  state.treasures = state.treasures.filter(t => {
-    if (state.speed > 0) t.life -= dt;
-    return t.life > 0;
-  });
-  state.treasures.forEach(t => {
-    const tx = Math.round(t.x);
-    const ty = Math.round(t.y);
-    const blink = Math.floor(performance.now() / 200) % 2 === 0;
-    ctx.fillStyle = blink ? '#ffd166' : '#ffffff';
-    ctx.fillRect(tx - 4, ty - 4, 8, 8);
-    ctx.fillStyle = '#f77f00';
-    ctx.fillRect(tx - 2, ty - 2, 4, 4);
-  });
-
-  // 구피 렌더링
   state.guppies.forEach(g => {
     g.update(
       canvas.width,
@@ -564,7 +542,6 @@ function renderTank(dt = 0.016) {
     g.draw(ctx);
   });
 
-  // 큰 공기방울 렌더링 (위로 떠오름)
   state.bubbles = state.bubbles.filter(b => b.y > 10);
   state.bubbles.forEach(b => {
     if (state.speed > 0) {
@@ -581,15 +558,15 @@ function renderTank(dt = 0.016) {
     ctx.fillRect(bx - 3, by - 3, 2, 2);
   });
 
-  // 사료 렌더링
-  ctx.fillStyle = '#7f4f24';
+  // 일반 사료(갈색) vs 특별 간식(분홍색) 렌더링
   state.foods = state.foods.filter(f => !f.eaten && f.y < canvas.height - 14);
   state.foods.forEach(f => {
     if (state.speed > 0) f.y += 0.25 * state.speed;
-    ctx.fillRect(Math.round(f.x), Math.round(f.y), 3, 3);
+    ctx.fillStyle = f.isTreat ? '#ff4d6d' : '#7f4f24';
+    const size = f.isTreat ? 4 : 3;
+    ctx.fillRect(Math.round(f.x), Math.round(f.y), size, size);
   });
 
-  // 이끼 렌더링
   if (state.mossLevel > 0) {
     ctx.fillStyle = `rgba(45, 106, 79, ${state.mossLevel * 0.25})`;
     const b = state.mossLevel * 4;
@@ -631,7 +608,6 @@ function drawDecorSprite(ctx, id, x, y) {
 }
 function triggerNightPhase() {
   state.bubbles = [];
-  state.treasures = [];
 
   const totalCount = state.guppies.length;
   const perFish = state.mossLevel === 1 ? 2 : 3;
@@ -726,9 +702,11 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
   const adults = state.guppies.filter(g => !g.isBaby);
   let birthMsg = '';
   if (adults.length >= 2 && state.guppies.length <= 30) {
-    const birthProb = Math.max(0.15, 0.85 - state.guppies.length * 0.025);
+    const baseProb = Math.max(0.15, 0.85 - state.guppies.length * 0.025);
+    const birthProb = state.hasSpecialTreat ? Math.min(0.95, baseProb + 0.15) : baseProb;
+
     if (Math.random() < birthProb) {
-      const newSpecies = pickOffspringSpecies();
+      const newSpecies = pickOffspringSpecies(state.hasSpecialTreat);
       const baby = new Guppy(newSpecies.id, true, canvas.width, canvas.height);
       state.guppies.push(baby);
 
@@ -749,6 +727,9 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
     }
   }
 
+  // 특별 간식 1일 효과 소모
+  state.hasSpecialTreat = false;
+
   if (Math.random() < 0.45) state.mossLevel = Math.min(3, state.mossLevel + 1);
   if (Math.random() < 0.35) state.waterLevel = Math.min(2, state.waterLevel + 1);
   if (!state.hasParasite && state.waterLevel === 2 && Math.random() < 0.3) {
@@ -760,8 +741,9 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
   updateUI();
 });
 
-function pickOffspringSpecies() {
-  const isRare = Math.random() < 0.2;
+function pickOffspringSpecies(boostRare = false) {
+  const rareChance = boostRare ? 0.55 : 0.2;
+  const isRare = Math.random() < rareChance;
   const targetRarity = isRare ? 'rare' : 'normal';
   const pool = GUPPY_SPECIES.filter(s => s.rarity === targetRarity);
   return pool[Math.floor(Math.random() * pool.length)];
@@ -784,6 +766,7 @@ function updateUI() {
   dexBtn.innerHTML = `도감 <small>(${state.unlockedDex.size}/14)</small>`;
 
   document.getElementById('stat-babybox').classList.toggle('hidden', !state.hasBabyBox);
+  document.getElementById('stat-treat').classList.toggle('hidden', !state.hasSpecialTreat);
   document.getElementById('stat-parasite').classList.toggle('hidden', !state.hasParasite);
   document.getElementById('stat-overcrowd').classList.toggle('hidden', state.guppies.length <= 30);
 
