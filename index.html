@@ -1,1 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>도트 구피 키우기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="title-screen" class="screen">
+    <div class="pixel-box title-card">
+      <h1>DOT GUPPY</h1>
+      <p>구피 육성 및 도감 수집</p>
+      <button id="btn-start" class="pixel-btn primary">게임 스타트</button>
+    </div>
+  </div>
 
+  <div id="game-screen" class="screen hidden">
+    <header class="top-bar">
+      <div class="status-group">
+        <div class="status-row">
+          <span id="stat-water" class="badge">수질:좋음</span>
+          <span id="stat-moss" class="badge">이끼:없음</span>
+          <span id="stat-over" class="badge hidden">과포화</span>
+          <span id="stat-bug" class="badge hidden">기생충</span>
+        </div>
+        <div class="status-row">
+          <span id="stat-pop" class="badge">성체:2 새끼:0</span>
+          <span id="stat-gold" class="badge gold">골드:10G</span>
+        </div>
+      </div>
+      <div class="time-group">
+        <div id="clock-display" class="clock">07:00</div>
+        <div class="time-btns">
+          <button id="btn-pause" class="pixel-btn mini">정지</button>
+          <button id="btn-fast" class="pixel-btn mini">2배속</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="tank-area">
+      <canvas id="tank-canvas" width="260" height="220"></canvas>
+      <button id="btn-dex" class="pixel-btn side-btn">물고기<br>도감</button>
+    </main>
+
+    <footer class="bottom-controls">
+      <button id="btn-clean-water" class="pixel-btn">물 갈기</button>
+      <button id="btn-clean-wall" class="pixel-btn">벽 닦기</button>
+      <button id="btn-clean-all" class="pixel-btn">전체 청소</button>
+      <button id="btn-feed" class="pixel-btn accent">밥 주기(1G)</button>
+      <button id="btn-shop" class="pixel-btn">상점</button>
+    </footer>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-box" class="pixel-box modal-content">
+      <h2 id="modal-title">알림</h2>
+      <div id="modal-body"></div>
+      <button id="btn-modal-close" class="pixel-btn">확인</button>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
