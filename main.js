@@ -26,7 +26,6 @@ function setLog(msg) {
   logBar.textContent = msg;
 }
 
-// 어항 크기를 휴대폰 비율에 맞춰 도트 해상도(가로 240px 고정, 세로 비율 자동)로 세팅
 function resizeTankCanvas() {
   const rect = canvas.getBoundingClientRect();
   if (rect.width > 0 && rect.height > 0) {
@@ -60,7 +59,7 @@ document.getElementById('btn-speed').addEventListener('click', () => {
   else if (state.speed === 1) state.speed = 3;
   else state.speed = 1;
   document.getElementById('btn-pause').textContent = '정지';
-  document.getElementById('btn-speed').textContent = `${state.speed}X`;
+  document.getElementById('btn-speed').textContent = `${state.speed}배속`;
 });
 
 document.getElementById('btn-feed').addEventListener('click', () => {
@@ -74,7 +73,8 @@ document.getElementById('btn-feed').addEventListener('click', () => {
   for (let i = 0; i < 6; i++) {
     state.foods.push({
       x: 20 + Math.random() * (canvas.width - 40),
-      y: 10 + Math.random() * 15
+      y: 10 + Math.random() * 15,
+      eaten: false
     });
   }
   setLog(`사료 급여 완료 (오늘 ${state.foodGivenToday}숟갈)`);
@@ -121,7 +121,7 @@ document.getElementById('btn-dex').addEventListener('click', () => {
 });
 
 document.getElementById('btn-shop').addEventListener('click', () => {
-  setLog('상점은 2단계에서 추가됩니다.');
+  setLog('상점은 다음 단계에서 추가됩니다.');
 });
 
 let lastTick = performance.now();
@@ -165,18 +165,18 @@ function renderTank() {
   ctx.fillStyle = '#e9c46a';
   ctx.fillRect(0, canvas.height - 14, canvas.width, 14);
 
-  // 사료
-  ctx.fillStyle = '#7f4f24';
-  state.foods.forEach(f => {
-    if (state.speed > 0) f.y += 0.3 * state.speed;
-    ctx.fillRect(Math.round(f.x), Math.round(f.y), 3, 3);
-  });
-  state.foods = state.foods.filter(f => f.y < canvas.height - 14);
-
-  // 구피
+  // 구피 업데이트 및 그리기 (사료 목록 전달)
   state.guppies.forEach(g => {
-    g.update(canvas.width, canvas.height, state.speed);
+    g.update(canvas.width, canvas.height, state.speed, state.foods);
     g.draw(ctx);
+  });
+
+  // 먹힌 사료와 바닥에 닿은 사료 제거 후 남은 사료 그리기
+  ctx.fillStyle = '#7f4f24';
+  state.foods = state.foods.filter(f => !f.eaten && f.y < canvas.height - 14);
+  state.foods.forEach(f => {
+    if (state.speed > 0) f.y += 0.25 * state.speed;
+    ctx.fillRect(Math.round(f.x), Math.round(f.y), 3, 3);
   });
 
   // 이끼
@@ -254,15 +254,15 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
     state.hasParasite = true;
   }
 
-  setLog(`DAY ${state.day} 아침이 밝았습니다.`);
+  setLog(`${state.day}일차 아침이 밝았습니다.`);
   updateUI();
 });
 
 function updateUI() {
-  const h = String(Math.floor(state.minutes / 60)).padStart(2, '0');
+  const h = Math.floor(state.minutes / 60);
   const m = String(Math.floor(state.minutes % 60)).padStart(2, '0');
-  document.getElementById('game-day').textContent = `DAY ${state.day}`;
-  document.getElementById('game-clock').textContent = `${h}:${m}`;
+  document.getElementById('game-day').textContent = `${state.day}일차`;
+  document.getElementById('game-clock').textContent = `${h}시 ${m}분`;
 
   const adults = state.guppies.filter(g => !g.isBaby).length;
   const babies = state.guppies.filter(g => g.isBaby).length;
