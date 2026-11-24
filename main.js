@@ -1,8 +1,10 @@
 const SAVE_KEY = 'guppy_tank_save_v1';
+const DAY_START_MIN = 9 * 60; // 9시 00분 (540분)
+const DAY_END_MIN = 17 * 60;  // 17시 00분 (1020분)
 
 const state = {
   day: 1,
-  minutes: 7 * 60,
+  minutes: DAY_START_MIN,
   speed: 1,
   prevSpeedBeforeShop: 1,
   gold: 10,
@@ -19,7 +21,8 @@ const state = {
   equippedDecors: [],
   equippedSubstrate: null,
   unlockedDex: new Set(['red_tail']),
-  dexCompletedRewarded: false
+  dexCompletedRewarded: false,
+  lastPlayTime: 0
 };
 
 const canvas = document.getElementById('tank-canvas');
@@ -63,7 +66,7 @@ function loadGame() {
   try {
     const data = JSON.parse(raw);
     state.day = data.day || 1;
-    state.minutes = data.minutes || 7 * 60;
+    state.minutes = Math.max(DAY_START_MIN, data.minutes || DAY_START_MIN);
     state.gold = data.gold ?? 10;
     state.waterLevel = data.waterLevel || 0;
     state.mossLevel = data.mossLevel || 0;
@@ -86,7 +89,6 @@ function loadGame() {
   }
 }
 
-// 저장 데이터 확인 후 CONTINUE 버튼 활성화
 (function checkSavedData() {
   const raw = localStorage.getItem(SAVE_KEY);
   if (raw) {
@@ -110,6 +112,31 @@ function resizeTankCanvas() {
 }
 
 window.addEventListener('resize', resizeTankCanvas);
+
+// 어항 속 구피 터치해서 놀아주기 (35% 확률로 +1G)
+canvas.addEventListener('pointerdown', e => {
+  if (state.isCleaning || state.minutes >= DAY_END_MIN) return;
+  const rect = canvas.getBoundingClientRect();
+  const tapX = ((e.clientX - rect.left) / rect.width) * canvas.width;
+  const tapY = ((e.clientY - rect.top) / rect.height) * canvas.height;
+
+  for (let i = state.guppies.length - 1; i >= 0; i--) {
+    const g = state.guppies[i];
+    if (Math.hypot(g.x - tapX, g.y - tapY) <= 22) {
+      g.playWith();
+      const now = Date.now();
+      if (now - state.lastPlayTime >= 1000 && Math.random() < 0.35) {
+        state.lastPlayTime = now;
+        state.gold += 1;
+        setLog(`${g.species.name}와 놀아주어 +1G를 얻었습니다!`);
+        updateUI();
+      } else {
+        setLog(`${g.species.name}가 반가워합니다!`);
+      }
+      break;
+    }
+  }
+});
 
 document.getElementById('btn-continue').addEventListener('click', () => {
   startScreen.classList.add('hidden');
@@ -175,20 +202,25 @@ document.getElementById('btn-feed').addEventListener('click', () => {
   updateUI();
 });
 
-function startCleaning(durationMin, label, callback) {
+function startCleaning(durationMin, cost, label, callback) {
   if (state.cleanedToday || state.isCleaning) return;
+  if (state.gold < cost) {
+    setLog(`골드가 부족합니다. (${label}: ${cost}G 필요)`);
+    return;
+  }
+  state.gold -= cost;
   state.cleanedToday = true;
   state.isCleaning = true;
   state.cleanTimer = durationMin;
   actionOverlay.textContent = `${label} 중 (${durationMin}분)`;
   actionOverlay.classList.remove('hidden');
-  setLog(`${label}을(를) 시작합니다.`);
+  setLog(`${label} 시작 (-${cost}G)`);
   state.onCleanFinish = callback;
   updateUI();
 }
 
 document.getElementById('btn-water').addEventListener('click', () => {
-  startCleaning(30, '물 갈기', () => {
+  startCleaning(30, 5, '물 갈기', () => {
     state.waterLevel = Math.max(0, state.waterLevel - 1);
     setLog('물 갈기 완료: 수질이 한 단계 좋아졌습니다.');
     saveGame();
@@ -196,7 +228,7 @@ document.getElementById('btn-water').addEventListener('click', () => {
 });
 
 document.getElementById('btn-wall').addEventListener('click', () => {
-  startCleaning(15, '벽 닦기', () => {
+  startCleaning(15, 3, '벽 닦기', () => {
     state.mossLevel = 0;
     setLog('벽 닦기 완료: 이끼가 제거되었습니다.');
     saveGame();
@@ -204,7 +236,7 @@ document.getElementById('btn-wall').addEventListener('click', () => {
 });
 
 document.getElementById('btn-clean-all').addEventListener('click', () => {
-  startCleaning(120, '전체청소', () => {
+  startCleaning(120, 15, '전체청소', () => {
     state.waterLevel = 0;
     state.mossLevel = 0;
     state.hasParasite = false;
@@ -273,7 +305,6 @@ function renderShopModal() {
   const list = document.getElementById('shop-list');
   list.innerHTML = '';
 
-  // 1. 구피 분양 섹션 (과포화 방지 및 골드 수급)
   const sellHeader = document.createElement('div');
   sellHeader.className = 'shop-cat';
   sellHeader.textContent = `구피 분양하기 (현재 ${state.guppies.length}마리 / 최소 1마리 유지)`;
@@ -304,7 +335,6 @@ function renderShopModal() {
     list.appendChild(row);
   });
 
-  // 2. 구매 아이템 섹션
   const categories = [
     { key: 'supply', title: '필수품 (새끼장 외 일회용)' },
     { key: 'decor', title: `장식품 (${state.equippedDecors.length}/2개)` },
@@ -404,7 +434,7 @@ function gameLoop(now) {
   const dt = (now - lastTick) / 1000;
   lastTick = now;
 
-  if (state.speed > 0 && state.minutes < 20 * 60) {
+  if (state.speed > 0 && state.minutes < DAY_END_MIN) {
     const prevMin = Math.floor(state.minutes);
     state.minutes += dt * state.speed;
     const currMin = Math.floor(state.minutes);
@@ -422,8 +452,8 @@ function gameLoop(now) {
       updateUI();
     }
 
-    if (state.minutes >= 20 * 60) {
-      state.minutes = 20 * 60;
+    if (state.minutes >= DAY_END_MIN) {
+      state.minutes = DAY_END_MIN;
       triggerNightPhase();
     }
   }
@@ -593,7 +623,7 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
   }
 
   state.day += 1;
-  state.minutes = 7 * 60;
+  state.minutes = DAY_START_MIN;
   state.foodGivenToday = 0;
   state.cleanedToday = false;
 
