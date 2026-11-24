@@ -10,15 +10,24 @@ class Guppy {
     this.dir = this.vx >= 0 ? 1 : -1;
     this.swimTimer = Math.random() * 100;
     this.eatAnimTimer = 0;
+    this.playAnimTimer = 0; // 터치해서 놀아줄 때 하트 연출
+  }
+
+  playWith() {
+    this.playAnimTimer = 35;
+    this.vy = -0.8;
+    this.vx = (Math.random() < 0.5 ? -1 : 1) * 0.9;
   }
 
   update(canvasWidth, canvasHeight, speedMultiplier, foods, hasBabyBox) {
+    if (this.playAnimTimer > 0) {
+      this.playAnimTimer -= 1;
+    }
     if (speedMultiplier === 0) return;
 
     this.swimTimer += 0.15 * speedMultiplier;
     if (this.eatAnimTimer > 0) this.eatAnimTimer -= speedMultiplier;
 
-    // 새끼장을 보유한 새끼 구피는 우측 상단 새끼장 안에서만 유영
     if (this.isBaby && hasBabyBox) {
       const boxX = canvasWidth - 68;
       const boxY = 8;
@@ -35,7 +44,6 @@ class Guppy {
       return;
     }
 
-    // 가장 가까운 사료 추적
     let targetFood = null;
     let minDist = Infinity;
     if (foods && foods.length > 0) {
@@ -84,11 +92,32 @@ class Guppy {
   }
 
   draw(ctx) {
-    drawGuppySprite(ctx, this.species, this.x, this.y, this.dir, this.isBaby ? 0.6 : 1, this.swimTimer, this.eatAnimTimer > 0, false);
+    drawGuppySprite(
+      ctx,
+      this.species,
+      this.x,
+      this.y,
+      this.dir,
+      this.isBaby ? 0.6 : 1,
+      this.swimTimer,
+      this.eatAnimTimer > 0,
+      false
+    );
+
+    // 터치해서 놀아줄 때 머리 위 도트 하트 표시
+    if (this.playAnimTimer > 0) {
+      const hx = Math.round(this.x) - 4;
+      const hy = Math.round(this.y) - 16 - Math.floor((35 - this.playAnimTimer) * 0.2);
+      ctx.fillStyle = '#ff4d6d';
+      ctx.fillRect(hx, hy, 2, 2);
+      ctx.fillRect(hx + 4, hy, 2, 2);
+      ctx.fillRect(hx - 1, hy + 2, 8, 2);
+      ctx.fillRect(hx + 1, hy + 4, 4, 2);
+      ctx.fillRect(hx + 2, hy + 6, 2, 1);
+    }
   }
 }
 
-// 어항과 도감에서 공용으로 쓰는 도트 구피 그리기 함수
 function drawGuppySprite(ctx, species, x, y, dir = 1, scale = 1, swimTimer = 0, isEating = false, isSilhouette = false) {
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
@@ -97,12 +126,10 @@ function drawGuppySprite(ctx, species, x, y, dir = 1, scale = 1, swimTimer = 0, 
   const p = 2;
   const wag = Math.sin(swimTimer * 2) > 0 ? 1 : -1;
 
-  // 꼬리
   ctx.fillStyle = isSilhouette ? '#0f172a' : species.tailColor;
   ctx.fillRect(-7 * p, (-2 + wag) * p, 3 * p, 4 * p);
   ctx.fillRect(-9 * p, (-3 + wag) * p, 2 * p, 6 * p);
 
-  // 몸통
   ctx.fillStyle = isSilhouette ? '#0f172a' : species.bodyColor;
   ctx.fillRect(-4 * p, -2 * p, 7 * p, 4 * p);
 
