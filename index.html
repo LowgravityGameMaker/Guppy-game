@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>구피 도감 키우기</title>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <!-- 시작 타이틀 화면 -->
@@ -31,6 +31,7 @@
       <div class="status-group">
         <span id="stat-water" class="badge">수질:좋음</span>
         <span id="stat-moss" class="badge">이끼:없음</span>
+        <span id="stat-babybox" class="badge hidden">새끼장:보유</span>
         <span id="stat-parasite" class="badge warn hidden">기생충</span>
         <span id="stat-overcrowd" class="badge warn hidden">과포화</span>
         <span id="stat-count" class="badge">성체:2 새끼:0</span>
@@ -38,9 +39,9 @@
       </div>
     </header>
 
-    <!-- 중앙: 어항 전체 넓이 사용 -->
+    <!-- 중앙: 컴팩트한 비율의 어항 -->
     <main class="tank-area">
-      <div class="tank-wrapper pixel-box" id="tank-box">
+      <div class="tank-wrapper pixel-box">
         <canvas id="tank-canvas"></canvas>
         <div id="action-overlay" class="overlay hidden">청소 중...</div>
       </div>
@@ -49,15 +50,38 @@
     <!-- 알림 메시지 로그 -->
     <div id="log-bar" class="pixel-box">붉은꼬리 구피 2마리와 시작합니다.</div>
 
-    <!-- 하단 조작 버튼 (6개 균등 배치) -->
+    <!-- 하단 조작 버튼 (3칸 x 2줄 넉넉한 배치) -->
     <footer class="bottom-bar">
-      <button id="btn-water" class="pixel-btn action-btn">물 갈기<br><small>30분</small></button>
-      <button id="btn-wall" class="pixel-btn action-btn">벽 닦기<br><small>15분</small></button>
-      <button id="btn-clean-all" class="pixel-btn action-btn">전체청소<br><small>2시간</small></button>
-      <button id="btn-feed" class="pixel-btn action-btn feed">밥 주기<br><small>-1G</small></button>
-      <button id="btn-dex" class="pixel-btn action-btn dex">도감</button>
-      <button id="btn-shop" class="pixel-btn action-btn shop">상점</button>
+      <button id="btn-water" class="pixel-btn">물 갈기 <small>(30분)</small></button>
+      <button id="btn-wall" class="pixel-btn">벽 닦기 <small>(15분)</small></button>
+      <button id="btn-clean-all" class="pixel-btn">전체청소 <small>(2시간)</small></button>
+      <button id="btn-feed" class="pixel-btn feed">밥 주기 <small>(-1G)</small></button>
+      <button id="btn-dex" class="pixel-btn dex">도감 <small>(1/14)</small></button>
+      <button id="btn-shop" class="pixel-btn shop">상점</button>
     </footer>
+  </div>
+
+  <!-- 도감 모달 -->
+  <div id="dex-modal" class="modal hidden">
+    <div class="pixel-box modal-content wide">
+      <div class="modal-header">
+        <h2>물고기 도감 (<span id="dex-progress">1/14</span>)</h2>
+        <button id="btn-close-dex" class="mini-btn">닫기</button>
+      </div>
+      <div id="dex-grid" class="dex-grid"></div>
+    </div>
+  </div>
+
+  <!-- 상점 모달 (열리면 시간 자동 일시정지) -->
+  <div id="shop-modal" class="modal hidden">
+    <div class="pixel-box modal-content wide">
+      <div class="modal-header">
+        <h2>상점 (보유: <span id="shop-gold">10G</span>)</h2>
+        <button id="btn-close-shop" class="mini-btn">닫기</button>
+      </div>
+      <p class="sub-text">상점을 여는 동안 시간이 멈춥니다. (장식 최대 2개 / 바닥재 1개)</p>
+      <div id="shop-list" class="shop-list"></div>
+    </div>
   </div>
 
   <!-- 밤 정산 모달 -->
@@ -79,8 +103,8 @@
     </div>
   </div>
 
-  <script src="data.js?v=3"></script>
-  <script src="guppy.js?v=3"></script>
-  <script src="main.js?v=3"></script>
+  <script src="data.js?v=4"></script>
+  <script src="guppy.js?v=4"></script>
+  <script src="main.js?v=4"></script>
 </body>
 </html>
