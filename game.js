@@ -33,7 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function createGuppy(speciesId, x, y) {
-    const sp = SPECIES_LIST.find(s => s.id === speciesId) || SPECIES_LIST[0];
+    const sp = SPECIES_LIST.find(s => s.id === speciesId) || SPECIES_LIST.at(0);
     return {
       species: sp,
       isAdult: true,
@@ -120,7 +120,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     ctx.fillStyle = '#784212';
     for (let i = state.foods.length - 1; i >= 0; i--) {
-      const f = state.foods[i];
+      const f = state.foods.at(i);
       if (!state.paused) f.y += 0.4 * state.speed;
       ctx.fillRect(Math.floor(f.x), Math.floor(f.y), 3, 3);
       if (f.y > 195) state.foods.splice(i, 1);
@@ -129,7 +129,7 @@ window.addEventListener('DOMContentLoaded', () => {
     state.guppies.forEach(g => {
       if (!state.paused) {
         if (state.foods.length > 0) {
-          const target = state.foods[0];
+          const target = state.foods.at(0);
           const dx = target.x - g.x;
           const dy = target.y - g.y;
           const dist = Math.hypot(dx, dy);
@@ -155,14 +155,11 @@ window.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(gameLoop);
   }
 
-  const startBtn = document.getElementById('btn-start');
-  if (startBtn) {
-    startBtn.onclick = () => {
-      document.getElementById('title-screen').classList.add('hidden');
-      document.getElementById('game-screen').classList.remove('hidden');
-      initGame();
-    };
-  }
+  document.getElementById('btn-start').onclick = () => {
+    document.getElementById('title-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    initGame();
+  };
 
   document.getElementById('btn-pause').onclick = (e) => {
     state.paused = !state.paused;
