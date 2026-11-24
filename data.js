@@ -19,6 +19,7 @@ const GUPPY_SPECIES = [
 
 const SHOP_ITEMS = [
   // 필수품
+  { id: 'special_treat', name: '특별 간식', price: 30, category: 'supply', desc: '희귀종 탄생 확률 대폭 상승(1일)' },
   { id: 'baby_box', name: '새끼장', price: 100, category: 'supply', desc: '새끼 구피 보호(영구)' },
   { id: 'anti_parasite', name: '기생충 제거제', price: 70, category: 'supply', desc: '기생충 즉시 제거' },
   { id: 'anti_moss', name: '이끼 제거제', price: 50, category: 'supply', desc: '이끼 즉시 제거' },
