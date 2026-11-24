@@ -120,12 +120,11 @@ html, body {
   font-weight: bold;
 }
 
-/* 중앙 어항 영역: 남은 화면 세로 높이 전부 차지 */
+/* 중앙 어항 영역 */
 .tank-area {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 6px;
 }
 
 .tank-wrapper {
@@ -156,13 +155,6 @@ html, body {
   color: #ffd166;
 }
 
-.side-btn {
-  width: 42px;
-  flex-shrink: 0;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
 /* 로그 바 */
 #log-bar {
   flex-shrink: 0;
@@ -177,13 +169,13 @@ html, body {
   text-overflow: ellipsis;
 }
 
-/* 하단 버튼 */
+/* 하단 버튼 (6칸 균등 배치) */
 .bottom-bar {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
-  height: 52px;
+  height: 50px;
 }
 
 .pixel-btn {
@@ -192,7 +184,7 @@ html, body {
   border: 2px solid #cbd5e1;
   box-shadow: 2px 2px 0px #0a0f18;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
   cursor: pointer;
   display: flex;
@@ -200,10 +192,11 @@ html, body {
   justify-content: center;
   align-items: center;
   line-height: 1.25;
+  padding: 2px;
 }
 
 .pixel-btn small {
-  font-size: 10px;
+  font-size: 9px;
   opacity: 0.85;
 }
 
@@ -227,6 +220,11 @@ html, body {
 
 .pixel-btn.feed {
   background: #d96b4e;
+}
+
+.pixel-btn.dex {
+  background: #4ea8de;
+  color: #0a0f18;
 }
 
 .pixel-btn.shop {
