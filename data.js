@@ -17,6 +17,26 @@ const GUPPY_SPECIES = [
   { id: 'heart', name: '하트 구피', rarity: 'rare', bodyColor: '#ffccd5', tailColor: '#ff4d6d', pattern: 'heart' }
 ];
 
-// 상태 단계 정의
-const WATER_LEVELS = ['좋음', '보통', '나쁨']; // 0: 좋음, 1: 보통, 2: 나쁨
-const MOSS_LEVELS = ['없음', '약간', '중간', '많음']; // 0: 없음, 1: 약간, 2: 중간, 3: 많음
+const SHOP_ITEMS = [
+  // 필수품
+  { id: 'baby_box', name: '새끼장', price: 100, category: 'supply', desc: '새끼 구피 보호(영구)' },
+  { id: 'anti_parasite', name: '기생충 제거제', price: 70, category: 'supply', desc: '기생충 즉시 제거' },
+  { id: 'anti_moss', name: '이끼 제거제', price: 50, category: 'supply', desc: '이끼 즉시 제거' },
+  // 장식품 (최대 2개 적용)
+  { id: 'fake_plant1', name: '인공수초', price: 50, category: 'decor', score: 3 },
+  { id: 'fake_plant2', name: '인공수초2', price: 50, category: 'decor', score: 3 },
+  { id: 'fake_coral', name: '인공산호', price: 70, category: 'decor', score: 4 },
+  { id: 'shell', name: '조개 장식', price: 50, category: 'decor', score: 3 },
+  { id: 'starfish', name: '불가사리 장식', price: 70, category: 'decor', score: 4 },
+  { id: 'rock', name: '돌 장식', price: 100, category: 'decor', score: 6 },
+  { id: 'sunken_ship', name: '침몰한 배 장식', price: 150, category: 'decor', score: 10 },
+  { id: 'real_plant1', name: '수초', price: 200, category: 'decor', score: 12 },
+  { id: 'real_plant2', name: '수초2', price: 200, category: 'decor', score: 12 },
+  // 바닥재 (최대 1개 적용)
+  { id: 'sand_dark', name: '어두운 색 바닥재', price: 100, category: 'substrate', color: '#4a4e69', score: 5 },
+  { id: 'sand_light', name: '밝은 색 바닥재', price: 100, category: 'substrate', color: '#f4e285', score: 5 },
+  { id: 'pebble_clear', name: '투명 조약돌 바닥재', price: 200, category: 'substrate', color: '#a8dadc', score: 10 }
+];
+
+const WATER_LEVELS = ['좋음', '보통', '나쁨'];
+const MOSS_LEVELS = ['없음', '약간', '중간', '많음'];
