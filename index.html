@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>구피 도감 키우기</title>
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
   <!-- 시작 타이틀 화면 -->
@@ -12,13 +12,15 @@
     <div class="pixel-box title-box">
       <h1>GUPPY TANK</h1>
       <p>구피를 돌보고 14종의 도감을 채우세요</p>
-      <button id="btn-start" class="pixel-btn primary">GAME START</button>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button id="btn-continue" class="pixel-btn primary hidden">CONTINUE</button>
+        <button id="btn-start" class="pixel-btn">NEW GAME</button>
+      </div>
     </div>
   </div>
 
   <!-- 메인 게임 화면 -->
   <div id="game-screen" class="screen hidden">
-    <!-- 상단 바 -->
     <header class="top-bar pixel-box">
       <div class="time-group">
         <span id="game-day">1일차</span>
@@ -39,7 +41,6 @@
       </div>
     </header>
 
-    <!-- 중앙: 컴팩트한 비율의 어항 -->
     <main class="tank-area">
       <div class="tank-wrapper pixel-box">
         <canvas id="tank-canvas"></canvas>
@@ -47,10 +48,8 @@
       </div>
     </main>
 
-    <!-- 알림 메시지 로그 -->
     <div id="log-bar" class="pixel-box">붉은꼬리 구피 2마리와 시작합니다.</div>
 
-    <!-- 하단 조작 버튼 (3칸 x 2줄 넉넉한 배치) -->
     <footer class="bottom-bar">
       <button id="btn-water" class="pixel-btn">물 갈기 <small>(30분)</small></button>
       <button id="btn-wall" class="pixel-btn">벽 닦기 <small>(15분)</small></button>
@@ -72,14 +71,14 @@
     </div>
   </div>
 
-  <!-- 상점 모달 (열리면 시간 자동 일시정지) -->
+  <!-- 상점 및 분양 모달 -->
   <div id="shop-modal" class="modal hidden">
     <div class="pixel-box modal-content wide">
       <div class="modal-header">
-        <h2>상점 (보유: <span id="shop-gold">10G</span>)</h2>
+        <h2>상점 / 분양 (<span id="shop-gold">10G</span>)</h2>
         <button id="btn-close-shop" class="mini-btn">닫기</button>
       </div>
-      <p class="sub-text">상점을 여는 동안 시간이 멈춥니다. (장식 최대 2개 / 바닥재 1개)</p>
+      <p class="sub-text">상점을 여는 동안 시간이 멈춥니다. (장식 2개 / 바닥재 1개)</p>
       <div id="shop-list" class="shop-list"></div>
     </div>
   </div>
@@ -99,12 +98,12 @@
     <div class="pixel-box modal-content">
       <h2>GAME OVER</h2>
       <p class="sub-text">모든 구피가 세상을 떠났습니다.</p>
-      <button onclick="location.reload()" class="pixel-btn primary">다시 시작</button>
+      <button id="btn-restart" class="pixel-btn primary">다시 시작</button>
     </div>
   </div>
 
-  <script src="data.js?v=5"></script>
-  <script src="guppy.js?v=5"></script>
-  <script src="main.js?v=5"></script>
+  <script src="data.js?v=6"></script>
+  <script src="guppy.js?v=6"></script>
+  <script src="main.js?v=6"></script>
 </body>
 </html>
