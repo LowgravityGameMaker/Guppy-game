@@ -1,3 +1,5 @@
+const SAVE_KEY = 'guppy_tank_save_v1';
+
 const state = {
   day: 1,
   minutes: 7 * 60,
@@ -31,6 +33,74 @@ function setLog(msg) {
   logBar.textContent = msg;
 }
 
+function saveGame() {
+  const payload = {
+    day: state.day,
+    minutes: state.minutes,
+    gold: state.gold,
+    waterLevel: state.waterLevel,
+    mossLevel: state.mossLevel,
+    hasParasite: state.hasParasite,
+    cleanedToday: state.cleanedToday,
+    foodGivenToday: state.foodGivenToday,
+    hasBabyBox: state.hasBabyBox,
+    equippedDecors: state.equippedDecors,
+    equippedSubstrate: state.equippedSubstrate,
+    unlockedDex: Array.from(state.unlockedDex),
+    dexCompletedRewarded: state.dexCompletedRewarded,
+    guppies: state.guppies.map(g => ({
+      speciesId: g.species.id,
+      isBaby: g.isBaby,
+      ageDays: g.ageDays
+    }))
+  };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+}
+
+function loadGame() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return false;
+  try {
+    const data = JSON.parse(raw);
+    state.day = data.day || 1;
+    state.minutes = data.minutes || 7 * 60;
+    state.gold = data.gold ?? 10;
+    state.waterLevel = data.waterLevel || 0;
+    state.mossLevel = data.mossLevel || 0;
+    state.hasParasite = !!data.hasParasite;
+    state.cleanedToday = !!data.cleanedToday;
+    state.foodGivenToday = data.foodGivenToday || 0;
+    state.hasBabyBox = !!data.hasBabyBox;
+    state.equippedDecors = data.equippedDecors || [];
+    state.equippedSubstrate = data.equippedSubstrate || null;
+    state.unlockedDex = new Set(data.unlockedDex || ['red_tail']);
+    state.dexCompletedRewarded = !!data.dexCompletedRewarded;
+    state.guppies = (data.guppies || []).map(g => {
+      const fish = new Guppy(g.speciesId, g.isBaby, canvas.width, canvas.height);
+      fish.ageDays = g.ageDays ?? (g.isBaby ? 0 : 2);
+      return fish;
+    });
+    return state.guppies.length > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+// 저장 데이터 확인 후 CONTINUE 버튼 활성화
+(function checkSavedData() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (raw) {
+    try {
+      const data = JSON.parse(raw);
+      if (data.guppies && data.guppies.length > 0) {
+        const contBtn = document.getElementById('btn-continue');
+        contBtn.textContent = `CONTINUE (${data.day}일차)`;
+        contBtn.classList.remove('hidden');
+      }
+    } catch (e) {}
+  }
+})();
+
 function resizeTankCanvas() {
   const rect = canvas.getBoundingClientRect();
   if (rect.width > 0 && rect.height > 0) {
@@ -41,7 +111,19 @@ function resizeTankCanvas() {
 
 window.addEventListener('resize', resizeTankCanvas);
 
+document.getElementById('btn-continue').addEventListener('click', () => {
+  startScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+  resizeTankCanvas();
+  if (loadGame()) {
+    setLog(`${state.day}일차 어항을 불러왔습니다.`);
+    updateUI();
+    requestAnimationFrame(gameLoop);
+  }
+});
+
 document.getElementById('btn-start').addEventListener('click', () => {
+  localStorage.removeItem(SAVE_KEY);
   startScreen.classList.add('hidden');
   gameScreen.classList.remove('hidden');
   resizeTankCanvas();
@@ -50,10 +132,15 @@ document.getElementById('btn-start').addEventListener('click', () => {
     new Guppy('red_tail', false, canvas.width, canvas.height),
     new Guppy('red_tail', false, canvas.width, canvas.height)
   ];
+  saveGame();
   updateUI();
   requestAnimationFrame(gameLoop);
 });
 
+document.getElementById('btn-restart').addEventListener('click', () => {
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+});
 document.getElementById('btn-pause').addEventListener('click', () => {
   state.speed = state.speed === 0 ? 1 : 0;
   const pauseBtn = document.getElementById('btn-pause');
@@ -104,6 +191,7 @@ document.getElementById('btn-water').addEventListener('click', () => {
   startCleaning(30, '물 갈기', () => {
     state.waterLevel = Math.max(0, state.waterLevel - 1);
     setLog('물 갈기 완료: 수질이 한 단계 좋아졌습니다.');
+    saveGame();
   });
 });
 
@@ -111,6 +199,7 @@ document.getElementById('btn-wall').addEventListener('click', () => {
   startCleaning(15, '벽 닦기', () => {
     state.mossLevel = 0;
     setLog('벽 닦기 완료: 이끼가 제거되었습니다.');
+    saveGame();
   });
 });
 
@@ -120,8 +209,10 @@ document.getElementById('btn-clean-all').addEventListener('click', () => {
     state.mossLevel = 0;
     state.hasParasite = false;
     setLog('전체청소 완료: 어항이 깨끗해졌습니다.');
+    saveGame();
   });
 });
+
 document.getElementById('btn-dex').addEventListener('click', () => {
   renderDexModal();
   document.getElementById('dex-modal').classList.remove('hidden');
@@ -182,6 +273,38 @@ function renderShopModal() {
   const list = document.getElementById('shop-list');
   list.innerHTML = '';
 
+  // 1. 구피 분양 섹션 (과포화 방지 및 골드 수급)
+  const sellHeader = document.createElement('div');
+  sellHeader.className = 'shop-cat';
+  sellHeader.textContent = `구피 분양하기 (현재 ${state.guppies.length}마리 / 최소 1마리 유지)`;
+  list.appendChild(sellHeader);
+
+  const adults = state.guppies.filter(g => !g.isBaby);
+  const grouped = {};
+  adults.forEach(g => {
+    grouped[g.species.id] = (grouped[g.species.id] || 0) + 1;
+  });
+
+  Object.keys(grouped).forEach(spId => {
+    const sp = GUPPY_SPECIES.find(s => s.id === spId);
+    const count = grouped[spId];
+    const sellPrice = sp.rarity === 'rare' ? 50 : 15;
+
+    const row = document.createElement('div');
+    row.className = 'shop-item';
+    row.innerHTML = `<div><strong>${sp.name}</strong> (${count}마리)</div>`;
+
+    const btn = document.createElement('button');
+    btn.className = 'pixel-btn dex';
+    btn.textContent = `+${sellPrice}G 분양`;
+    btn.disabled = state.guppies.length <= 1;
+    btn.onclick = () => sellGuppy(spId, sellPrice, sp.name);
+
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+
+  // 2. 구매 아이템 섹션
   const categories = [
     { key: 'supply', title: '필수품 (새끼장 외 일회용)' },
     { key: 'decor', title: `장식품 (${state.equippedDecors.length}/2개)` },
@@ -228,6 +351,19 @@ function renderShopModal() {
   });
 }
 
+function sellGuppy(speciesId, price, name) {
+  if (state.guppies.length <= 1) return;
+  const idx = state.guppies.findIndex(g => !g.isBaby && g.species.id === speciesId);
+  if (idx !== -1) {
+    state.guppies.splice(idx, 1);
+    state.gold += price;
+    setLog(`${name} 1마리를 분양했습니다. (+${price}G)`);
+    saveGame();
+    updateUI();
+    renderShopModal();
+  }
+}
+
 function buyItem(item) {
   if (state.gold < item.price) return;
 
@@ -259,6 +395,7 @@ function buyItem(item) {
     setLog(`${item.name}을(를) 바닥에 깔았습니다.`);
   }
 
+  saveGame();
   updateUI();
   renderShopModal();
 }
@@ -435,6 +572,7 @@ function triggerNightPhase() {
   }
 
   state.gold += score;
+  saveGame();
 
   const reportEl = document.getElementById('night-report');
   reportEl.innerHTML = `
@@ -449,6 +587,7 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
   document.getElementById('night-modal').classList.add('hidden');
 
   if (state.guppies.length === 0) {
+    localStorage.removeItem(SAVE_KEY);
     document.getElementById('gameover-modal').classList.remove('hidden');
     return;
   }
@@ -497,6 +636,7 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
     state.hasParasite = true;
   }
 
+  saveGame();
   setLog(`${state.day}일차 아침!${birthMsg}`);
   updateUI();
 });
