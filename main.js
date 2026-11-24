@@ -117,7 +117,12 @@ function resizeTankCanvas() {
 
 window.addEventListener('resize', resizeTankCanvas);
 
-// 어항 터치 판정: 1순위 큰 공기방울(+1G) -> 2순위 구피 놀아주기(+1G 확률)
+document.getElementById('btn-sound').addEventListener('click', () => {
+  const isMuted = sound.toggleMute();
+  document.getElementById('btn-sound').textContent = isMuted ? '소리:끔' : '소리:켬';
+  if (!isMuted) sound.playPop();
+});
+
 canvas.addEventListener('click', e => {
   if (state.isCleaning || state.minutes >= DAY_END_MIN) return;
   const rect = canvas.getBoundingClientRect();
@@ -129,6 +134,7 @@ canvas.addEventListener('click', e => {
     if (Math.hypot(b.x - tapX, b.y - tapY) <= 22) {
       state.bubbles.splice(i, 1);
       state.gold += 1;
+      sound.playPop();
       setLog('큰 공기방울을 터뜨렸습니다! (+1G)');
       saveGame();
       updateUI();
@@ -146,18 +152,20 @@ canvas.addEventListener('click', e => {
       if (now - state.lastPlayTime >= 800 && Math.random() < 0.4) {
         state.lastPlayTime = now;
         state.gold += 1;
+        sound.playCoin();
         setLog(`${g.species.name}와 놀아주어 +1G 획득!`);
         saveGame();
         updateUI();
       } else {
+        sound.playPop();
         setLog(`${g.species.name}가 반가워합니다!`);
       }
       break;
     }
   }
 });
-
 document.getElementById('btn-continue').addEventListener('click', () => {
+  sound.playChime();
   startScreen.classList.add('hidden');
   gameScreen.classList.remove('hidden');
   resizeTankCanvas();
@@ -169,6 +177,7 @@ document.getElementById('btn-continue').addEventListener('click', () => {
 });
 
 document.getElementById('btn-start').addEventListener('click', () => {
+  sound.playChime();
   localStorage.removeItem(SAVE_KEY);
   startScreen.classList.add('hidden');
   gameScreen.classList.remove('hidden');
@@ -187,13 +196,16 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   localStorage.removeItem(SAVE_KEY);
   location.reload();
 });
+
 document.getElementById('btn-pause').addEventListener('click', () => {
+  sound.playPop();
   state.speed = state.speed === 0 ? 1 : 0;
   const pauseBtn = document.getElementById('btn-pause');
   pauseBtn.textContent = state.speed === 0 ? '재생' : '정지';
 });
 
 document.getElementById('btn-speed').addEventListener('click', () => {
+  sound.playPop();
   if (state.speed === 0) state.speed = 1;
   else if (state.speed === 1) state.speed = 3;
   else state.speed = 1;
@@ -208,6 +220,7 @@ document.getElementById('btn-feed').addEventListener('click', () => {
     setLog('골드가 부족합니다. (1숟갈 = 1G)');
     return;
   }
+  sound.playFeed();
   state.gold -= 1;
   state.foodGivenToday += 1;
   for (let i = 0; i < 6; i++) {
@@ -228,6 +241,7 @@ function startCleaning(durationMin, cost, label, callback) {
     setLog(`골드가 부족합니다! (${label}: ${cost}G 필요)`);
     return;
   }
+  sound.playPop();
   state.gold -= cost;
   state.cleanedToday = true;
   state.isCleaning = true;
@@ -242,6 +256,7 @@ function startCleaning(durationMin, cost, label, callback) {
 
 document.getElementById('btn-water').addEventListener('click', () => {
   startCleaning(30, 5, '물 갈기', () => {
+    sound.playChime();
     state.waterLevel = Math.max(0, state.waterLevel - 1);
     setLog('물 갈기 완료: 수질이 한 단계 좋아졌습니다.');
     saveGame();
@@ -250,6 +265,7 @@ document.getElementById('btn-water').addEventListener('click', () => {
 
 document.getElementById('btn-wall').addEventListener('click', () => {
   startCleaning(15, 3, '벽 닦기', () => {
+    sound.playChime();
     state.mossLevel = 0;
     setLog('벽 닦기 완료: 이끼가 제거되었습니다.');
     saveGame();
@@ -258,6 +274,7 @@ document.getElementById('btn-wall').addEventListener('click', () => {
 
 document.getElementById('btn-clean-all').addEventListener('click', () => {
   startCleaning(120, 15, '전체청소', () => {
+    sound.playChime();
     state.waterLevel = 0;
     state.mossLevel = 0;
     state.hasParasite = false;
@@ -267,11 +284,13 @@ document.getElementById('btn-clean-all').addEventListener('click', () => {
 });
 
 document.getElementById('btn-dex').addEventListener('click', () => {
+  sound.playPop();
   renderDexModal();
   document.getElementById('dex-modal').classList.remove('hidden');
 });
 
 document.getElementById('btn-close-dex').addEventListener('click', () => {
+  sound.playPop();
   document.getElementById('dex-modal').classList.add('hidden');
 });
 
@@ -306,8 +325,8 @@ function renderDexModal() {
     grid.appendChild(card);
   });
 }
-
 document.getElementById('btn-shop').addEventListener('click', () => {
+  sound.playPop();
   state.prevSpeedBeforeShop = state.speed;
   state.speed = 0;
   renderShopModal();
@@ -315,6 +334,7 @@ document.getElementById('btn-shop').addEventListener('click', () => {
 });
 
 document.getElementById('btn-close-shop').addEventListener('click', () => {
+  sound.playPop();
   document.getElementById('shop-modal').classList.add('hidden');
   state.speed = state.prevSpeedBeforeShop || 1;
   const pauseBtn = document.getElementById('btn-pause');
@@ -407,6 +427,7 @@ function sellGuppy(speciesId, price, name) {
   if (state.guppies.length <= 1) return;
   const idx = state.guppies.findIndex(g => !g.isBaby && g.species.id === speciesId);
   if (idx !== -1) {
+    sound.playCoin();
     state.guppies.splice(idx, 1);
     state.gold += price;
     setLog(`${name} 1마리를 분양했습니다. (+${price}G)`);
@@ -422,6 +443,7 @@ function buyItem(item) {
   if (item.category === 'supply') {
     if (item.id === 'special_treat') {
       if (state.hasSpecialTreat) return;
+      sound.playFeed();
       state.gold -= item.price;
       state.hasSpecialTreat = true;
       for (let i = 0; i < 12; i++) {
@@ -435,19 +457,23 @@ function buyItem(item) {
       setLog('특별 간식을 급여했습니다! 내일 희귀종 확률이 크게 오릅니다!');
     } else if (item.id === 'baby_box') {
       if (state.hasBabyBox) return;
+      sound.playCoin();
       state.gold -= item.price;
       state.hasBabyBox = true;
       setLog('새끼장을 구매했습니다! 새끼 구피가 보호됩니다.');
     } else if (item.id === 'anti_parasite') {
+      sound.playCoin();
       state.gold -= item.price;
       state.hasParasite = false;
       setLog('기생충 제거제를 사용했습니다.');
     } else if (item.id === 'anti_moss') {
+      sound.playCoin();
       state.gold -= item.price;
       state.mossLevel = 0;
       setLog('이끼 제거제를 사용했습니다.');
     }
   } else if (item.category === 'decor') {
+    sound.playCoin();
     state.gold -= item.price;
     if (state.equippedDecors.length >= 2) {
       state.equippedDecors.shift();
@@ -455,6 +481,7 @@ function buyItem(item) {
     state.equippedDecors.push(item.id);
     setLog(`${item.name}을(를) 어항에 배치했습니다.`);
   } else if (item.category === 'substrate') {
+    sound.playCoin();
     state.gold -= item.price;
     state.equippedSubstrate = item.id;
     setLog(`${item.name}을(를) 바닥에 깔았습니다.`);
@@ -464,6 +491,7 @@ function buyItem(item) {
   updateUI();
   renderShopModal();
 }
+
 let lastTick = performance.now();
 function gameLoop(now) {
   const dt = (now - lastTick) / 1000;
@@ -506,7 +534,6 @@ function gameLoop(now) {
   renderTank();
   requestAnimationFrame(gameLoop);
 }
-
 function renderTank() {
   if (state.waterLevel === 0) ctx.fillStyle = '#48cae4';
   else if (state.waterLevel === 1) ctx.fillStyle = '#64dfdf';
@@ -558,7 +585,6 @@ function renderTank() {
     ctx.fillRect(bx - 3, by - 3, 2, 2);
   });
 
-  // 일반 사료(갈색) vs 특별 간식(분홍색) 렌더링
   state.foods = state.foods.filter(f => !f.eaten && f.y < canvas.height - 14);
   state.foods.forEach(f => {
     if (state.speed > 0) f.y += 0.25 * state.speed;
@@ -606,6 +632,7 @@ function drawDecorSprite(ctx, id, x, y) {
   }
   ctx.restore();
 }
+
 function triggerNightPhase() {
   state.bubbles = [];
 
@@ -711,6 +738,7 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
       state.guppies.push(baby);
 
       if (!state.unlockedDex.has(newSpecies.id)) {
+        sound.playChime();
         state.unlockedDex.add(newSpecies.id);
         const bonus = newSpecies.rarity === 'rare' ? 150 : 40;
         state.gold += bonus;
@@ -722,12 +750,12 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
           alert('축하합니다! 14종 구피 도감을 모두 완성했습니다! (+1000G)');
         }
       } else {
+        sound.playPop();
         birthMsg = ` 새끼 [${newSpecies.name}]가 태어났습니다!`;
       }
     }
   }
 
-  // 특별 간식 1일 효과 소모
   state.hasSpecialTreat = false;
 
   if (Math.random() < 0.45) state.mossLevel = Math.min(3, state.mossLevel + 1);
