@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>구피 도감 키우기</title>
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body>
   <!-- 시작 타이틀 화면 -->
@@ -24,7 +24,7 @@
     <header class="top-bar pixel-box">
       <div class="time-group">
         <span id="game-day">1일차</span>
-        <span id="game-clock">7시 00분</span>
+        <span id="game-clock">9시 00분</span>
         <div class="time-controls">
           <button id="btn-pause" class="mini-btn">정지</button>
           <button id="btn-speed" class="mini-btn">1배속</button>
@@ -48,12 +48,12 @@
       </div>
     </main>
 
-    <div id="log-bar" class="pixel-box">붉은꼬리 구피 2마리와 시작합니다.</div>
+    <div id="log-bar" class="pixel-box">구피를 터치해 놀아주면 확률적으로 1G를 얻습니다!</div>
 
     <footer class="bottom-bar">
-      <button id="btn-water" class="pixel-btn">물 갈기 <small>(30분)</small></button>
-      <button id="btn-wall" class="pixel-btn">벽 닦기 <small>(15분)</small></button>
-      <button id="btn-clean-all" class="pixel-btn">전체청소 <small>(2시간)</small></button>
+      <button id="btn-water" class="pixel-btn">물 갈기 <small>(-5G)</small></button>
+      <button id="btn-wall" class="pixel-btn">벽 닦기 <small>(-3G)</small></button>
+      <button id="btn-clean-all" class="pixel-btn">전체청소 <small>(-15G)</small></button>
       <button id="btn-feed" class="pixel-btn feed">밥 주기 <small>(-1G)</small></button>
       <button id="btn-dex" class="pixel-btn dex">도감 <small>(1/14)</small></button>
       <button id="btn-shop" class="pixel-btn shop">상점</button>
@@ -87,9 +87,9 @@
   <div id="night-modal" class="modal hidden">
     <div class="pixel-box modal-content">
       <h2>NIGHT REPORT</h2>
-      <p class="sub-text">밤이 되어 어항 속이 보이지 않습니다.</p>
+      <p class="sub-text">오후 5시가 되어 어항의 불이 꺼졌습니다.</p>
       <div id="night-report" class="report-box"></div>
-      <button id="btn-next-day" class="pixel-btn primary">다음 날 (7시 00분)</button>
+      <button id="btn-next-day" class="pixel-btn primary">다음 날 (9시 00분)</button>
     </div>
   </div>
 
@@ -102,8 +102,8 @@
     </div>
   </div>
 
-  <script src="data.js?v=6"></script>
-  <script src="guppy.js?v=6"></script>
-  <script src="main.js?v=6"></script>
+  <script src="data.js?v=7"></script>
+  <script src="guppy.js?v=7"></script>
+  <script src="main.js?v=7"></script>
 </body>
 </html>
