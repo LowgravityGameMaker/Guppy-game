@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>구피 도감 키우기</title>
-  <link rel="stylesheet" href="style.css?v=15" />
+  <title>구피 도감 & 아쿠아 타이쿤</title>
+  <link rel="stylesheet" href="style.css?v=16" />
 </head>
 <body>
   <!-- 시작 타이틀 화면 -->
   <div id="start-screen" class="screen">
     <div class="pixel-box title-box">
-      <h1>GUPPY TANK</h1>
-      <p>구피를 돌보고 14종의 도감을 채우세요</p>
+      <h1>GUPPY TYCOON</h1>
+      <p>구피를 키워 손님 주문을 납품하고 14종 도감을 완성하세요</p>
       <div style="display:flex; flex-direction:column; gap:8px;">
         <button id="btn-continue" class="pixel-btn primary hidden">CONTINUE</button>
         <button id="btn-start" class="pixel-btn">NEW GAME</button>
@@ -35,6 +35,7 @@
         <span id="stat-water" class="badge">수질:좋음</span>
         <span id="stat-moss" class="badge">이끼:없음</span>
         <span id="stat-food" class="badge">사료:0/6</span>
+        <span id="stat-rep" class="badge gold">★Lv.1 (0)</span>
         <span id="stat-babybox" class="badge hidden">새끼장:보유</span>
         <span id="stat-treat" class="badge gold hidden">특식효과</span>
         <span id="stat-parasite" class="badge warn hidden">기생충</span>
@@ -58,9 +59,22 @@
       <button id="btn-wall" class="pixel-btn">벽 닦기 <small>(-3G)</small></button>
       <button id="btn-clean-all" class="pixel-btn">전체청소 <small>(-15G)</small></button>
       <button id="btn-feed" class="pixel-btn feed">밥 주기 <small>(-1G)</small></button>
+      <button id="btn-order" class="pixel-btn primary">주문서 <small>(0/3)</small></button>
       <button id="btn-dex" class="pixel-btn dex">도감 <small>(1/14)</small></button>
       <button id="btn-shop" class="pixel-btn shop">상점</button>
     </footer>
+  </div>
+
+  <!-- 손님 주문서 모달 -->
+  <div id="order-modal" class="modal hidden">
+    <div class="pixel-box modal-content wide">
+      <div class="modal-header">
+        <h2>손님 주문서 (<span id="order-rep-title">동네 어항 Lv.1</span>)</h2>
+        <button id="btn-close-order" class="mini-btn">닫기</button>
+      </div>
+      <p class="sub-text">성체 구피를 조건에 맞게 납품해 골드와 평판을 얻으세요! (최소 1마리 유지)</p>
+      <div id="order-list" class="shop-list"></div>
+    </div>
   </div>
 
   <!-- 도감 모달 -->
@@ -105,9 +119,9 @@
     </div>
   </div>
 
-  <script src="sound.js?v=15"></script>
-  <script src="data.js?v=15"></script>
-  <script src="guppy.js?v=15"></script>
-  <script src="main.js?v=15"></script>
+  <script src="sound.js?v=16"></script>
+  <script src="data.js?v=16"></script>
+  <script src="guppy.js?v=16"></script>
+  <script src="main.js?v=16"></script>
 </body>
 </html>
