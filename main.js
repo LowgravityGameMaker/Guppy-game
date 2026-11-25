@@ -171,7 +171,6 @@ canvas.addEventListener('click', e => {
     }
   }
 });
-
 document.getElementById('btn-continue').addEventListener('click', () => {
   sound.playChime();
   startScreen.classList.add('hidden');
