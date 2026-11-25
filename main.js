@@ -604,3 +604,124 @@ function pickOffspringSpecies(adults, boostRare = false) {
   const normalPool = GUPPY_SPECIES.filter(s => s.rarity === 'normal');
   return normalPool[Math.floor(Math.random() * normalPool.length)];
 }
+/* === 아래 코드를 main.js 맨 아래에 그대로 붙여넣으세요 === */
+function getCurrentRank() {
+  const ranks = typeof SHOP_RANKS !== 'undefined' ? SHOP_RANKS : [
+    { level: 1, title: '동네 어항', minRep: 0, bonusRate: 1.0 },
+    { level: 2, title: '인기 수족관', minRep: 5, bonusRate: 1.2 },
+    { level: 3, title: '명품 아쿠아 숍', minRep: 15, bonusRate: 1.5 }
+  ];
+  let current = ranks;
+  for (const r of ranks) {
+    if ((state.reputation || 0) >= r.minRep) current = r;
+  }
+  return current;
+}
+
+function generateNewOrder() {
+  const rank = getCurrentRank();
+  const names = typeof CUSTOMER_NAMES !== 'undefined' ? CUSTOMER_NAMES : ['초보 집사 민수', '카페 사장님', '어린이 손님 하늘'];
+  const customer = names[Math.floor(Math.random() * names.length)];
+  const normals = GUPPY_SPECIES.filter(s => s.rarity === 'normal');
+  const targetSpecies = normals[Math.floor(Math.random() * normals.length)];
+  const count = Math.floor(Math.random() * 2) + 1;
+  return {
+    id: Date.now() + Math.random(),
+    customer,
+    speciesId: targetSpecies.id,
+    speciesName: targetSpecies.name,
+    isRare: false,
+    count,
+    reward: Math.round((count * 35 + 15) * rank.bonusRate),
+    repReward: count,
+    daysLeft: 3
+  };
+}
+
+function fillInitialOrders() {
+  if (!Array.isArray(state.orders)) state.orders = [];
+  while (state.orders.length < 2) {
+    state.orders.push(generateNewOrder());
+  }
+}
+
+function updateUI() {
+  const h = Math.floor(state.minutes / 60);
+  const m = String(Math.floor(state.minutes % 60)).padStart(2, '0');
+  document.getElementById('game-day').textContent = `${state.day}일차`;
+  document.getElementById('game-clock').textContent = `${h}시 ${m}분`;
+
+  const adults = state.guppies.filter(g => !g.isBaby).length;
+  const babies = state.guppies.filter(g => g.isBaby).length;
+  document.getElementById('stat-count').textContent = `성체:${adults} 새끼:${babies}`;
+  document.getElementById('stat-gold').textContent = `${state.gold}G`;
+  document.getElementById('stat-water').textContent = `수질:${WATER_LEVELS[state.waterLevel]}`;
+  document.getElementById('stat-moss').textContent = `이끼:${MOSS_LEVELS[state.mossLevel]}`;
+
+  const perFish = state.mossLevel === 1 ? 2 : 3;
+  const recommendedFood = state.guppies.length * perFish;
+  const foodBadge = document.getElementById('stat-food');
+  if (foodBadge) foodBadge.textContent = `사료:${state.foodGivenToday}/${recommendedFood}`;
+
+  const rank = getCurrentRank();
+  const repBadge = document.getElementById('stat-rep');
+  if (repBadge) repBadge.textContent = `★Lv.${rank.level} (${state.reputation || 0})`;
+
+  const orderBtn = document.getElementById('btn-order');
+  if (orderBtn) orderBtn.innerHTML = `주문서 <small>(${(state.orders || []).length}/3)</small>`;
+
+  document.getElementById('btn-dex').innerHTML = `도감 <small>(${state.unlockedDex.size}/14)</small>`;
+  document.getElementById('stat-babybox').classList.toggle('hidden', !state.hasBabyBox);
+  document.getElementById('stat-treat').classList.toggle('hidden', !state.hasSpecialTreat);
+  document.getElementById('stat-parasite').classList.toggle('hidden', !state.hasParasite);
+  document.getElementById('stat-overcrowd').classList.toggle('hidden', state.guppies.length <= 30);
+
+  const disableClean = state.cleanedToday || state.isCleaning;
+  document.getElementById('btn-water').disabled = disableClean;
+  document.getElementById('btn-wall').disabled = disableClean;
+  document.getElementById('btn-clean-all').disabled = disableClean;
+  document.getElementById('btn-feed').disabled = state.isCleaning;
+}
+
+const orderBtnEl = document.getElementById('btn-order');
+if (orderBtnEl) {
+  orderBtnEl.onclick = () => {
+    sound.playPop();
+    const list = document.getElementById('order-list');
+    list.innerHTML = '';
+    (state.orders || []).forEach(order => {
+      const own = state.guppies.filter(g => !g.isBaby && g.species.id === order.speciesId).length;
+      const ok = own >= order.count && state.guppies.length - order.count >= 1;
+      const row = document.createElement('div');
+      row.className = 'shop-item';
+      row.innerHTML = `<div><strong>${order.customer}</strong> (${order.daysLeft}일 남음)<br>${order.speciesName} ${order.count}마리 (보유:${own}) / +${order.reward}G</div>`;
+      const btn = document.createElement('button');
+      btn.className = ok ? 'pixel-btn primary' : 'pixel-btn';
+      btn.style.width = 'auto';
+      btn.textContent = ok ? '납품' : '부족';
+      btn.disabled = !ok;
+      btn.onclick = () => {
+        let removed = 0;
+        for (let i = state.guppies.length - 1; i >= 0 && removed < order.count; i--) {
+          if (!state.guppies[i].isBaby && state.guppies[i].species.id === order.speciesId) {
+            state.guppies.splice(i, 1);
+            removed++;
+          }
+        }
+        state.gold += order.reward;
+        state.reputation = (state.reputation || 0) + order.repReward;
+        state.orders = state.orders.filter(o => o.id !== order.id);
+        sound.playChime();
+        setLog(`${order.customer} 납품 완료! (+${order.reward}G)`);
+        saveGame();
+        updateUI();
+        orderBtnEl.onclick();
+      };
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+    document.getElementById('order-modal').classList.remove('hidden');
+  };
+}
+const closeOrderEl = document.getElementById('btn-close-order');
+if (closeOrderEl) closeOrderEl.onclick = () => document.getElementById('order-modal').classList.add('hidden');
