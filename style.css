@@ -120,7 +120,7 @@ html, body {
   font-weight: bold;
 }
 
-/* 중앙 어항: 위아래 너무 길지 않게 최대 높이 제한 */
+/* 중앙 어항 */
 .tank-area {
   flex: 1;
   min-height: 0;
@@ -170,13 +170,19 @@ html, body {
   text-overflow: ellipsis;
 }
 
-/* 하단 버튼 (3칸 x 2줄 배치로 글씨 안 눌림) */
+/* 하단 버튼 (4칸 x 2줄 배치로 7개 버튼 깔끔 정렬) */
 .bottom-bar {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 44px);
-  gap: 6px;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 42px);
+  gap: 5px;
+}
+
+#btn-order {
+  grid-column: span 2;
+  padding: 0;
+  font-size: 12px;
 }
 
 .pixel-btn {
@@ -319,7 +325,7 @@ html, body {
   font-weight: bold;
 }
 
-/* 상점 리스트 */
+/* 상점 및 주문 리스트 */
 .shop-list {
   display: flex;
   flex-direction: column;
@@ -343,10 +349,12 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-size: 12px;
 }
 
 .shop-item button {
-  padding: 4px 10px;
+  padding: 6px 10px;
   font-size: 11px;
+  flex-shrink: 0;
 }
