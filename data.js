@@ -39,5 +39,16 @@ const SHOP_ITEMS = [
   { id: 'pebble_clear', name: '투명 조약돌 바닥재', price: 200, category: 'substrate', color: '#a8dadc', score: 10 }
 ];
 
+const CUSTOMER_NAMES = [
+  '초보 집사 민수', '수초 매니아 지영', '카페 사장님', '어린이 손님 하늘',
+  '아쿠아 수집가', '동네 수족관 단골', '유치원 선생님', '인테리어 디자이너'
+];
+
+const SHOP_RANKS = [
+  { level: 1, title: '동네 어항', minRep: 0, bonusRate: 1.0 },
+  { level: 2, title: '인기 수족관', minRep: 5, bonusRate: 1.2 },
+  { level: 3, title: '명품 아쿠아 숍', minRep: 15, bonusRate: 1.5 }
+];
+
 const WATER_LEVELS = ['좋음', '보통', '나쁨'];
 const MOSS_LEVELS = ['없음', '약간', '중간', '많음'];
