@@ -652,9 +652,9 @@ function triggerNightPhase() {
     }
   }
 
-    const perFish = state.mossLevel === 1 ? 2 : 3;
-  const recommendedFood = state.guppies.length * perFish;
-
+  const totalCount = state.guppies.length;
+  const perFish = state.mossLevel === 1 ? 2 : 3;
+  const recommendedFood = totalCount * perFish;
   let score = 100;
   let envDeadCount = 0;
   let eatenCount = 0;
@@ -808,8 +808,7 @@ function updateUI() {
   document.getElementById('stat-water').textContent = `수질:${WATER_LEVELS[state.waterLevel]}`;
   document.getElementById('stat-moss').textContent = `이끼:${MOSS_LEVELS[state.mossLevel]}`;
 
-  // 오늘 사료 급여 횟수 / 권장 횟수 표시
-    const perFish = state.mossLevel === 1 ? 2 : 3;
+  const perFish = state.mossLevel === 1 ? 2 : 3;
   const recommendedFood = state.guppies.length * perFish;
   const foodBadge = document.getElementById('stat-food');
   if (foodBadge) {
@@ -817,7 +816,7 @@ function updateUI() {
     foodBadge.classList.toggle('warn', state.foodGivenToday > recommendedFood + state.guppies.length);
     foodBadge.classList.toggle('gold', state.foodGivenToday >= recommendedFood && state.foodGivenToday <= recommendedFood + state.guppies.length);
   }
-  
+
   const dexBtn = document.getElementById('btn-dex');
   dexBtn.innerHTML = `도감 <small>(${state.unlockedDex.size}/14)</small>`;
 
