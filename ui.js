@@ -112,6 +112,7 @@ function renderShopModal() {
       const isEqSub = state.equippedSubstrate === item.id;
       const isBabyBox = item.id === 'baby_box' && state.hasBabyBox;
       const isTreatUsed = item.id === 'special_treat' && state.hasSpecialTreat;
+      const isTonicUsed = item.id === 'multi_birth_tonic' && state.hasMultiTonic;
       const isUnneededMeds =
         (item.id === 'anti_parasite' && !state.hasParasite) ||
         (item.id === 'anti_moss' && state.mossLevel === 0);
@@ -122,7 +123,7 @@ function renderShopModal() {
       if (isBabyBox) {
         btnLabel = '보유중';
         disabled = true;
-      } else if (isTreatUsed || isEqDecor || isEqSub) {
+      } else if (isTreatUsed || isTonicUsed || isEqDecor || isEqSub) {
         btnLabel = '적용중';
         disabled = true;
       } else if (isUnneededMeds) {
@@ -177,6 +178,12 @@ function buyItem(item) {
         });
       }
       setLog('특별 간식을 급여했습니다! 내일 희귀종 확률이 크게 오릅니다!');
+    } else if (item.id === 'multi_birth_tonic') {
+      if (state.hasMultiTonic) return;
+      sound.playChime();
+      state.gold -= item.price;
+      state.hasMultiTonic = true;
+      setLog('다산 영양제를 투여했습니다! 내일 여러 마리의 새끼가 태어날 확률이 높아집니다!');
     } else if (item.id === 'baby_box') {
       if (state.hasBabyBox) return;
       sound.playCoin();
